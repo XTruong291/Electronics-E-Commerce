@@ -196,3 +196,172 @@ def resolve_identity(db: Session, oauth_info: "OAuthUserInfo") -> User:
     db.commit()
     db.refresh(new_user)
     return new_user
+
+
+def update_user_profile(
+    db: Session,
+    user: User,
+    full_name: Optional[str] = None,
+    phone: Optional[str] = None,
+) -> User:
+    """Update profile fields for a user."""
+    if full_name is not None:
+        user.full_name = full_name.strip()
+    if phone is not None:
+        user.phone = phone.strip() if phone else None
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def get_user_addresses(db: Session, user_id: int):
+    """Retrieve all addresses belonging to a user."""
+    from app.models.user import UserAddress
+
+    return (
+        db.query(UserAddress)
+        .filter(UserAddress.user_id == user_id)
+        .order_by(UserAddress.is_default.desc(), UserAddress.id.desc())
+        .all()
+    )
+
+
+def get_user_address_by_id(db: Session, address_id: int, user_id: int):
+    """Retrieve a single address belonging to user."""
+    from app.models.user import UserAddress
+
+    return (
+        db.query(UserAddress)
+        .filter(UserAddress.id == address_id, UserAddress.user_id == user_id)
+        .first()
+    )
+
+
+def create_user_address(
+    db: Session,
+    user_id: int,
+    recipient: str,
+    phone: str,
+    province: str,
+    district: str,
+    ward: str,
+    detail: str,
+    is_default: bool = False,
+):
+    """Create a new address. If is_default is True or first address, sets as sole default."""
+    from app.models.user import UserAddress
+
+    existing_count = (
+        db.query(UserAddress).filter(UserAddress.user_id == user_id).count()
+    )
+    if existing_count == 0:
+        is_default = True
+
+    if is_default:
+        db.query(UserAddress).filter(UserAddress.user_id == user_id).update(
+            {"is_default": False}
+        )
+
+    address = UserAddress(
+        user_id=user_id,
+        recipient=recipient.strip(),
+        phone=phone.strip(),
+        province=province.strip(),
+        district=district.strip(),
+        ward=ward.strip(),
+        detail=detail.strip(),
+        is_default=is_default,
+    )
+    db.add(address)
+    db.commit()
+    db.refresh(address)
+    return address
+
+
+def update_user_address(
+    db: Session,
+    address,
+    recipient: Optional[str] = None,
+    phone: Optional[str] = None,
+    province: Optional[str] = None,
+    district: Optional[str] = None,
+    ward: Optional[str] = None,
+    detail: Optional[str] = None,
+    is_default: Optional[bool] = None,
+):
+    """Update address fields. If is_default becomes True, unset others."""
+    from app.models.user import UserAddress
+
+    if is_default is True:
+        db.query(UserAddress).filter(
+            UserAddress.user_id == address.user_id,
+            UserAddress.id != address.id,
+        ).update({"is_default": False})
+        address.is_default = True
+    elif is_default is False:
+        address.is_default = False
+
+    if recipient is not None:
+        address.recipient = recipient.strip()
+    if phone is not None:
+        address.phone = phone.strip()
+    if province is not None:
+        address.province = province.strip()
+    if district is not None:
+        address.district = district.strip()
+    if ward is not None:
+        address.ward = ward.strip()
+    if detail is not None:
+        address.detail = detail.strip()
+
+    db.commit()
+    db.refresh(address)
+    return address
+
+
+def delete_user_address(db: Session, address) -> None:
+    """Delete an address. If default was deleted, promote another address to default if exists."""
+    from app.models.user import UserAddress
+
+    was_default = address.is_default
+    user_id = address.user_id
+    db.delete(address)
+    db.commit()
+
+    if was_default:
+        next_addr = (
+            db.query(UserAddress).filter(UserAddress.user_id == user_id).first()
+        )
+        if next_addr:
+            next_addr.is_default = True
+            db.commit()
+
+
+def list_users(
+    db: Session,
+    search: Optional[str] = None,
+    role: Optional[UserRole] = None,
+    is_active: Optional[bool] = None,
+    page: int = 1,
+    page_size: int = 20,
+):
+    """List users with search, role/status filtering, and pagination."""
+    query = db.query(User)
+
+    if search:
+        s = f"%{search.strip()}%"
+        query = query.filter((User.email.ilike(s)) | (User.full_name.ilike(s)))
+    if role:
+        query = query.filter(User.role == role)
+    if is_active is not None:
+        query = query.filter(User.is_active == is_active)
+
+    total = query.count()
+    items = (
+        query.order_by(User.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return items, total
+

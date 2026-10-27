@@ -5,6 +5,15 @@ from app.schemas.auth import (
     UserRegisterRequest,
     UserResponse,
 )
+from app.schemas.user import (
+    UserAddressCreate,
+    UserAddressResponse,
+    UserAddressUpdate,
+    UserListResponse,
+    UserProfileUpdate,
+    UserRoleUpdate,
+    UserStatusUpdate,
+)
 
 __all__ = [
     "UserRegisterRequest",
@@ -12,4 +21,11 @@ __all__ = [
     "UserResponse",
     "TokenResponse",
     "MessageResponse",
+    "UserProfileUpdate",
+    "UserAddressCreate",
+    "UserAddressUpdate",
+    "UserAddressResponse",
+    "UserRoleUpdate",
+    "UserStatusUpdate",
+    "UserListResponse",
 ]
