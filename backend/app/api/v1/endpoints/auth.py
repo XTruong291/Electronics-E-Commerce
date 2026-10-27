@@ -1,7 +1,18 @@
 from datetime import datetime, timezone
 from typing import Optional
+from urllib.parse import quote_plus
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Cookie,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user
@@ -9,8 +20,10 @@ from app.core.config import settings
 from app.core.rate_limit import rate_limit_auth
 from app.core.security import (
     create_access_token,
+    create_oauth_state,
     generate_refresh_token,
     hash_token,
+    verify_oauth_state,
 )
 from app.crud.user import (
     authenticate_user,
@@ -19,6 +32,7 @@ from app.crud.user import (
     get_refresh_token_by_hash,
     get_user_by_email,
     get_user_by_id,
+    resolve_identity,
     revoke_all_user_tokens,
     revoke_refresh_token,
 )
@@ -30,6 +44,11 @@ from app.schemas.auth import (
     UserLoginRequest,
     UserRegisterRequest,
     UserResponse,
+)
+from app.services.oauth import (
+    exchange_github_code,
+    exchange_google_code,
+    get_oauth_authorize_url,
 )
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -189,7 +208,6 @@ def refresh_token(
         )
 
     # Check expiration
-    # Ensure token_record.expires_at is timezone-aware
     expires_at = token_record.expires_at
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
@@ -258,3 +276,118 @@ def get_me(
 ):
     """Retrieve profile of currently authenticated user."""
     return UserResponse.model_validate(current_user)
+
+
+# ---------------- SSO Endpoints ----------------
+
+
+@router.get("/sso/{provider}/authorize")
+def sso_authorize(
+    provider: str,
+    request: Request,
+    redirect: Optional[str] = Query(None),
+):
+    """Initiate OAuth 2.0 Authorization Code flow for Google or GitHub."""
+    provider = provider.lower()
+    if provider not in ("google", "github"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nhà cung cấp SSO không được hỗ trợ",
+        )
+
+    # Validate relative redirect path to prevent open redirect
+    safe_redirect = "/"
+    if redirect and redirect.startswith("/") and not redirect.startswith("//"):
+        safe_redirect = redirect
+
+    state = create_oauth_state(provider=provider, redirect_target=safe_redirect)
+    redirect_uri = str(request.url_for("sso_callback", provider=provider))
+
+    auth_url = get_oauth_authorize_url(provider, state, redirect_uri)
+    return RedirectResponse(
+        url=auth_url,
+        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    )
+
+
+@router.get("/sso/{provider}/callback", name="sso_callback")
+async def sso_callback(
+    provider: str,
+    request: Request,
+    code: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
+    error: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Handle OAuth 2.0 provider callback with state validation and identity resolution."""
+    provider = provider.lower()
+    if provider not in ("google", "github"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nhà cung cấp SSO không được hỗ trợ",
+        )
+
+    # Provider reported an error
+    if error:
+        err_target = f"{settings.FRONTEND_URL}/auth/sso/callback?error={quote_plus(error)}"
+        return RedirectResponse(url=err_target, status_code=status.HTTP_302_FOUND)
+
+    # Validate state
+    if not state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Thiếu tham số state xác thực",
+        )
+
+    state_payload = verify_oauth_state(state, expected_provider=provider)
+    if not state_payload:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="State xác thực không hợp lệ hoặc đã hết hạn",
+        )
+
+    if not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Thiếu mã xác thực (code) từ nhà cung cấp SSO",
+        )
+
+    redirect_uri = str(request.url_for("sso_callback", provider=provider))
+
+    try:
+        if provider == "google":
+            oauth_info = await exchange_google_code(code, redirect_uri)
+        else:
+            oauth_info = await exchange_github_code(code, redirect_uri)
+
+        user = resolve_identity(db, oauth_info)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Lỗi xác thực SSO: {str(exc)}",
+        )
+
+    # Issue tokens
+    raw_refresh = generate_refresh_token()
+    create_refresh_token(
+        db,
+        user_id=user.id,
+        raw_token=raw_refresh,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    access_token = create_access_token(
+        data={"sub": str(user.id), "email": user.email, "role": user.role.value}
+    )
+
+    target_redirect = state_payload.get("redirect", "/")
+    frontend_target = (
+        f"{settings.FRONTEND_URL}/auth/sso/callback"
+        f"?access_token={access_token}&redirect={quote_plus(target_redirect)}"
+    )
+
+    res = RedirectResponse(url=frontend_target, status_code=status.HTTP_302_FOUND)
+    set_refresh_cookie(res, raw_refresh)
+    return res

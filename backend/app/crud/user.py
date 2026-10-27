@@ -101,3 +101,98 @@ def revoke_all_user_tokens(db: Session, user_id: int) -> None:
         synchronize_session="fetch",
     )
     db.commit()
+
+
+def resolve_identity(db: Session, oauth_info: "OAuthUserInfo") -> User:
+    """Resolve user identity from OAuth provider information.
+    Covers three cases:
+    (a) (provider, provider_user_id) exists -> log in that user;
+    (b) email matches an existing user and email_verified is true -> link account;
+    (c) new email -> create user with password_hash = NULL, role CUSTOMER, plus oauth_accounts row.
+    Rejects linking when email_verified is false.
+    """
+    from fastapi import HTTPException, status
+    from app.models.user import OAuthAccount
+
+    # Case (a): (provider, provider_user_id) exists
+    oauth_acc = (
+        db.query(OAuthAccount)
+        .filter(
+            OAuthAccount.provider == oauth_info.provider,
+            OAuthAccount.provider_user_id == str(oauth_info.provider_user_id),
+        )
+        .first()
+    )
+    if oauth_acc:
+        user = get_user_by_id(db, oauth_acc.user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tài khoản liên kết không tồn tại",
+            )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tài khoản đã bị khóa do vi phạm chính sách",
+            )
+        if not user.avatar_url and oauth_info.avatar_url:
+            user.avatar_url = oauth_info.avatar_url
+            db.commit()
+        return user
+
+    # If not previously linked, email is mandatory
+    if not oauth_info.email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không tìm thấy email từ tài khoản SSO",
+        )
+
+    normalized_email = oauth_info.email.strip().lower()
+    existing_user = get_user_by_email(db, normalized_email)
+
+    # Case (b): Email matches existing user
+    if existing_user:
+        if not oauth_info.email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email chưa được xác thực bởi nhà cung cấp. Không thể tự động liên kết tài khoản",
+            )
+        if not existing_user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tài khoản đã bị khóa do vi phạm chính sách",
+            )
+
+        new_oauth = OAuthAccount(
+            user_id=existing_user.id,
+            provider=oauth_info.provider,
+            provider_user_id=str(oauth_info.provider_user_id),
+        )
+        db.add(new_oauth)
+        if not existing_user.avatar_url and oauth_info.avatar_url:
+            existing_user.avatar_url = oauth_info.avatar_url
+        db.commit()
+        db.refresh(existing_user)
+        return existing_user
+
+    # Case (c): New email -> create user with password_hash=None and role CUSTOMER
+    new_user = User(
+        email=normalized_email,
+        password_hash=None,
+        full_name=oauth_info.full_name or normalized_email.split("@")[0],
+        avatar_url=oauth_info.avatar_url,
+        role=UserRole.CUSTOMER,
+        is_active=True,
+    )
+    db.add(new_user)
+    db.flush()
+
+    new_oauth = OAuthAccount(
+        user_id=new_user.id,
+        provider=oauth_info.provider,
+        provider_user_id=str(oauth_info.provider_user_id),
+    )
+    db.add(new_oauth)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
