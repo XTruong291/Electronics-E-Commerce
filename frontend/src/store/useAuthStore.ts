@@ -15,6 +15,8 @@ interface AuthState {
   hydrate: () => Promise<void>;
 }
 
+let hydratePromise: Promise<void> | null = null;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
@@ -22,7 +24,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isHydrated: false,
 
   login: (user: User, accessToken: string) => {
-    set({ user, accessToken, isLoading: false });
+    hydratePromise = null;
+    set({ user, accessToken, isHydrated: true, isLoading: false });
     // Call cart synchronization stub after login
     useCartStore.getState().syncAfterLogin().catch(() => {});
   },
@@ -36,34 +39,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    hydratePromise = null;
     try {
       await axiosClient.post("/auth/logout");
     } catch {
       // Ignore network errors on logout
     } finally {
-      set({ user: null, accessToken: null, isLoading: false });
+      set({ user: null, accessToken: null, isLoading: false, isHydrated: true });
     }
   },
 
   hydrate: async () => {
     if (get().isHydrated) return;
-    set({ isLoading: true });
-    try {
-      // Call silent refresh via HttpOnly cookie
-      const data = (await axiosClient.post("/auth/refresh")) as unknown as AuthResponse;
-      if (data && data.access_token && data.user) {
-        set({
-          user: data.user,
-          accessToken: data.access_token,
-          isHydrated: true,
-          isLoading: false,
-        });
-        useCartStore.getState().syncAfterLogin().catch(() => {});
-        return;
+    if (hydratePromise) return hydratePromise;
+
+    hydratePromise = (async () => {
+      set({ isLoading: true });
+      try {
+        // Call silent refresh via HttpOnly cookie
+        const data = (await axiosClient.post("/auth/refresh")) as unknown as AuthResponse;
+        if (data && data.access_token && data.user) {
+          set({
+            user: data.user,
+            accessToken: data.access_token,
+            isHydrated: true,
+            isLoading: false,
+          });
+          useCartStore.getState().syncAfterLogin().catch(() => {});
+          return;
+        }
+      } catch {
+        // User is not logged in or cookie expired
+      } finally {
+        hydratePromise = null;
       }
-    } catch {
-      // User is not logged in or cookie expired
-    }
-    set({ user: null, accessToken: null, isHydrated: true, isLoading: false });
+      set({ user: null, accessToken: null, isHydrated: true, isLoading: false });
+    })();
+
+    return hydratePromise;
   },
 }));

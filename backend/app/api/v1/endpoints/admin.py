@@ -33,6 +33,19 @@ def admin_ping(
     }
 
 
+@router.patch("/orders/{order_id}/status")
+def update_order_status(
+    order_id: int,
+    current_user: User = Depends(require_roles([UserRole.STAFF, UserRole.ADMIN])),
+):
+    """Guarded order status update endpoint (staff & admin only)."""
+    return {
+        "message": "Cập nhật trạng thái đơn hàng thành công",
+        "order_id": order_id,
+        "updated_by": current_user.email,
+    }
+
+
 @router.get("/users", response_model=UserListResponse)
 def get_admin_users(
     search: Optional[str] = Query(None),

@@ -60,3 +60,33 @@ def test_admin_ping_admin_allowed(client: TestClient, db_session):
     data = response.json()
     assert data["message"] == "pong"
     assert data["role"] == "ADMIN"
+
+
+def test_admin_orders_patch_status_customer_forbidden(client: TestClient, db_session):
+    customer = (
+        db_session.query(User).filter(User.email == "customer@example.com").first()
+    )
+    token = create_access_token(
+        {"sub": str(customer.id), "email": customer.email, "role": customer.role.value}
+    )
+
+    response = client.patch(
+        "/api/v1/admin/orders/1/status",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+    assert "Bạn không có quyền truy cập chức năng này" in response.json()["detail"]
+
+
+def test_admin_orders_patch_status_staff_allowed(client: TestClient, db_session):
+    staff = db_session.query(User).filter(User.email == "staff@example.com").first()
+    token = create_access_token(
+        {"sub": str(staff.id), "email": staff.email, "role": staff.role.value}
+    )
+
+    response = client.patch(
+        "/api/v1/admin/orders/1/status",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["order_id"] == 1
