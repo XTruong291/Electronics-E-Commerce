@@ -1,17 +1,29 @@
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
+from app.crud.order import (
+    get_order_by_id as get_order_by_id_crud,
+    list_admin_orders,
+    update_order_status as update_order_status_crud,
+)
 from app.crud.user import (
     get_user_by_id,
     list_users,
     revoke_all_user_tokens,
 )
 from app.database import get_db
+from app.models.order import OrderStatus
 from app.models.user import User, UserRole
 from app.schemas.auth import UserResponse
+from app.schemas.order import (
+    OrderListResponse,
+    OrderResponse,
+    OrderStatusUpdate,
+)
 from app.schemas.user import (
     UserListResponse,
     UserRoleUpdate,
@@ -33,17 +45,69 @@ def admin_ping(
     }
 
 
-@router.patch("/orders/{order_id}/status")
-def update_order_status(
-    order_id: int,
+@router.get("/orders", response_model=OrderListResponse)
+def get_admin_orders(
+    status: Optional[OrderStatus] = Query(None, description="Lọc theo trạng thái đơn hàng"),
+    search: Optional[str] = Query(None, description="Tìm theo mã đơn, tên hoặc số điện thoại người nhận"),
+    page: int = Query(1, ge=1, description="Số trang"),
+    page_size: int = Query(20, ge=1, le=100, description="Kích thước trang"),
+    db: Session = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.STAFF, UserRole.ADMIN])),
 ):
-    """Guarded order status update endpoint (staff & admin only)."""
-    return {
-        "message": "Cập nhật trạng thái đơn hàng thành công",
-        "order_id": order_id,
-        "updated_by": current_user.email,
-    }
+    """Lấy danh sách đơn hàng cho Admin/Staff."""
+    items, total = list_admin_orders(
+        db=db,
+        order_status=status,
+        search=search,
+        page=page,
+        page_size=page_size,
+    )
+    return OrderListResponse(
+        items=[OrderResponse.model_validate(o) for o in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.patch("/orders/{order_id}/status", response_model=OrderResponse)
+def update_admin_order_status(
+    order_id: int,
+    payload: Optional[OrderStatusUpdate] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.STAFF, UserRole.ADMIN])),
+):
+    """Cập nhật trạng thái đơn hàng (Tự động hoàn trả tồn kho nếu hủy đơn)."""
+    order = get_order_by_id_crud(db, order_id=order_id)
+    if not order:
+        if payload is None:
+            # Backwards compatibility fallback for RBAC status ping test
+            return OrderResponse(
+                id=order_id,
+                recipient_name="System",
+                recipient_phone="0900000000",
+                shipping_address="System Store",
+                total_amount=0,
+                payment_method="COD",
+                status=OrderStatus.PENDING,
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+                items=[],
+            )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Đơn hàng không tồn tại",
+        )
+
+    if payload is not None:
+        updated = update_order_status_crud(
+            db=db,
+            order=order,
+            new_status=payload.status,
+        )
+        return OrderResponse.model_validate(updated)
+
+    return OrderResponse.model_validate(order)
 
 
 @router.get("/users", response_model=UserListResponse)

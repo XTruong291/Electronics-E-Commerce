@@ -53,6 +53,30 @@ def get_current_user(
     return user
 
 
+def get_optional_current_user(
+    db: Session = Depends(get_db),
+    auth_header: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer),
+) -> Optional[User]:
+    """Extract and validate JWT access token if present, otherwise return None (for guest checkout)."""
+    if not auth_header or not auth_header.credentials:
+        return None
+
+    payload = decode_access_token(auth_header.credentials)
+    if not payload or "sub" not in payload:
+        return None
+
+    try:
+        user_id = int(payload["sub"])
+    except (ValueError, TypeError):
+        return None
+
+    user = get_user_by_id(db, user_id=user_id)
+    if not user or not user.is_active:
+        return None
+
+    return user
+
+
 def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:

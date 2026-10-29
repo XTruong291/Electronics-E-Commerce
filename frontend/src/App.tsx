@@ -3,9 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import StoreLayout from "./layouts/StoreLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import HomePage from "./pages/client/HomePage";
+import ProductDetailPage from "./pages/client/ProductDetailPage";
+import CheckoutPage from "./pages/client/CheckoutPage";
+import MyOrdersPage from "./pages/client/MyOrdersPage";
 import ProfilePage from "./pages/client/ProfilePage";
 import DashboardPage from "./pages/admin/DashboardPage";
 import UsersPage from "./pages/admin/UsersPage";
+import ProductsPage from "./pages/admin/ProductsPage";
+import CategoriesPage from "./pages/admin/CategoriesPage";
+import OrdersPage from "./pages/admin/OrdersPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import SSOCallbackPage from "./pages/auth/SSOCallbackPage";
@@ -29,6 +35,16 @@ const App: React.FC = () => {
         {/* Client Storefront Routes */}
         <Route path="/" element={<StoreLayout />}>
           <Route index element={<HomePage />} />
+          <Route path="products/:slug" element={<ProductDetailPage />} />
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route
+            path="orders"
+            element={
+              <ProtectedRoute>
+                <MyOrdersPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="profile"
             element={
@@ -50,6 +66,9 @@ const App: React.FC = () => {
         >
           <Route index element={<DashboardPage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="orders" element={<OrdersPage />} />
         </Route>
 
         {/* Fallback */}
