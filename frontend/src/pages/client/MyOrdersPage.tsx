@@ -102,7 +102,7 @@ const MyOrdersPage: React.FC = () => {
               description="Bạn chưa có đơn hàng nào."
             >
               <Link to="/">
-                <Button type="primary" icon={<ShopOutlined />}>
+                <Button type="primary" icon={<ShopOutlined />} style={{ background: "#cb1c22", borderColor: "#cb1c22" }}>
                   Khám phá và Mua sắm ngay
                 </Button>
               </Link>

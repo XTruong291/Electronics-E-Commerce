@@ -161,7 +161,9 @@ const CheckoutPage: React.FC = () => {
               </Link>,
               isAuthenticated ? (
                 <Link to="/orders" key="orders">
-                  <Button type="primary">Xem đơn hàng của tôi</Button>
+                  <Button type="primary" style={{ background: "#cb1c22", borderColor: "#cb1c22" }}>
+                    Xem đơn hàng của tôi
+                  </Button>
                 </Link>
               ) : null,
             ]}
@@ -237,11 +239,12 @@ const CheckoutPage: React.FC = () => {
             <Card
               title={
                 <Space>
-                  <EnvironmentOutlined style={{ color: "#1677ff" }} />
+                  <EnvironmentOutlined style={{ color: "#cb1c22" }} />
                   <span>Thông tin người nhận</span>
                 </Space>
               }
-              style={{ borderRadius: 12, marginBottom: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              bordered={false}
+              style={{ borderRadius: 12, marginBottom: 20, boxShadow: "0 2px 10px rgba(0,0,0,0.03)", border: "1px solid #e5e7eb" }}
             >
               {/* Chọn nhanh từ sổ địa chỉ nếu có */}
               {isAuthenticated && addresses.length > 0 && (
@@ -312,11 +315,12 @@ const CheckoutPage: React.FC = () => {
             <Card
               title={
                 <Space>
-                  <CreditCardOutlined style={{ color: "#52c41a" }} />
+                  <CreditCardOutlined style={{ color: "#cb1c22" }} />
                   <span>Phương thức thanh toán</span>
                 </Space>
               }
-              style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              bordered={false}
+              style={{ borderRadius: 12, boxShadow: "0 2px 10px rgba(0,0,0,0.03)", border: "1px solid #e5e7eb" }}
             >
               <Form.Item name="payment_method" style={{ marginBottom: 0 }}>
                 <Radio.Group style={{ width: "100%" }}>
@@ -325,15 +329,16 @@ const CheckoutPage: React.FC = () => {
                       value="COD"
                       style={{
                         padding: "12px 16px",
-                        border: "1px solid #d9d9d9",
+                        border: "1px solid #e5e7eb",
                         borderRadius: 8,
                         width: "100%",
+                        background: "#fff",
                       }}
                     >
                       <div>
                         <strong>Thanh toán khi nhận hàng (COD)</strong>
                         <Text type="secondary" style={{ display: "block", fontSize: 12 }}>
-                          Bạn chỉ phải thanh toán khi đã nhận và kiểm tra hàng
+                          Bạn chỉ phải thanh toán khi đã nhận và kiểm tra hàng thực tế
                         </Text>
                       </div>
                     </Radio>
@@ -341,15 +346,16 @@ const CheckoutPage: React.FC = () => {
                       value="BANK_TRANSFER"
                       style={{
                         padding: "12px 16px",
-                        border: "1px solid #d9d9d9",
+                        border: "1px solid #e5e7eb",
                         borderRadius: 8,
                         width: "100%",
+                        background: "#fff",
                       }}
                     >
                       <div>
-                        <strong>Chuyển khoản Ngân hàng (QR Code)</strong>
+                        <strong>Chuyển khoản Ngân hàng (VietQR / Internet Banking)</strong>
                         <Text type="secondary" style={{ display: "block", fontSize: 12 }}>
-                          Quét mã VietQR chuyển khoản nhanh sau khi đặt hàng
+                          Quét mã QR chuyển khoản nhanh sau khi đơn hàng được tạo
                         </Text>
                       </div>
                     </Radio>
@@ -363,10 +369,12 @@ const CheckoutPage: React.FC = () => {
           <Col xs={24} md={10}>
             <Card
               title="Đơn hàng của bạn"
-              extra={<Tag color="blue">{items.length} món</Tag>}
+              extra={<Tag color="#cb1c22" style={{ border: "none", fontWeight: 700 }}>{items.length} món</Tag>}
+              bordered={false}
               style={{
                 borderRadius: 12,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+                border: "1px solid #e5e7eb",
                 position: "sticky",
                 top: 24,
               }}
@@ -448,10 +456,10 @@ const CheckoutPage: React.FC = () => {
                   marginTop: 24,
                   height: 48,
                   fontSize: 16,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   borderRadius: 8,
-                  background: "#ff4d4f",
-                  borderColor: "#ff4d4f",
+                  background: "#cb1c22",
+                  borderColor: "#cb1c22",
                 }}
               >
                 Xác nhận đặt hàng
