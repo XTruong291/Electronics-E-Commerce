@@ -365,3 +365,19 @@ def list_users(
     )
     return items, total
 
+
+def delete_user(db: Session, user: User) -> None:
+    """Permanently delete a user account.
+    Disassociates user's order history by setting order.user_id = None.
+    Cascades deletion to refresh_tokens, oauth_accounts, and user_addresses.
+    """
+    from app.models.order import Order
+
+    # 1. Disassociate placed orders so historical order data remains intact for store accounting
+    db.query(Order).filter(Order.user_id == user.id).update({Order.user_id: None})
+
+    # 2. Delete user
+    db.delete(user)
+    db.commit()
+
+

@@ -222,3 +222,56 @@ def test_admin_lock_and_role_change_revokes_refresh_tokens(
     db_session.rollback()
     t2 = db_session.query(RefreshToken).filter(RefreshToken.id == tok_obj2.id).first()
     assert t2.revoked is True
+
+
+def test_admin_delete_user_endpoints(client: TestClient, db_session: Session):
+    admin = db_session.query(User).filter(User.role == UserRole.ADMIN).first()
+    customer = db_session.query(User).filter(User.role == UserRole.CUSTOMER).first()
+    admin_token = get_token(admin)
+    customer_token = get_token(customer)
+
+    # 1. Admin self-deletion should be blocked
+    self_del = client.delete(
+        f"/api/v1/admin/users/{admin.id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert self_del.status_code == 400
+    assert "Không thể tự xóa tài khoản của chính mình" in self_del.json()["detail"]
+
+    # 2. Customer cannot delete user (403)
+    cust_del = client.delete(
+        f"/api/v1/admin/users/{customer.id}",
+        headers={"Authorization": f"Bearer {customer_token}"},
+    )
+    assert cust_del.status_code == 403
+
+    # 3. Create fresh user to delete
+    target = User(
+        email=f"to_delete_{uuid.uuid4().hex[:6]}@example.com",
+        full_name="User To Delete",
+        role=UserRole.CUSTOMER,
+        is_active=True,
+    )
+    db_session.add(target)
+    db_session.commit()
+    target_id = target.id
+
+    # 4. Admin deletes user successfully
+    del_res = client.delete(
+        f"/api/v1/admin/users/{target_id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert del_res.status_code == 200
+    assert del_res.json()["deleted_user_id"] == target_id
+
+    # 5. Check user no longer exists in DB
+    db_session.rollback()
+    assert db_session.query(User).filter(User.id == target_id).first() is None
+
+    # 6. Deleting non-existent user returns 404
+    del_again = client.delete(
+        f"/api/v1/admin/users/{target_id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert del_again.status_code == 404
+

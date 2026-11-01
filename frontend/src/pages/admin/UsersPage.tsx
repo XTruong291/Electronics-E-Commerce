@@ -21,6 +21,7 @@ import {
   UnlockOutlined,
   UserSwitchOutlined,
   ReloadOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import axiosClient from "../../api/axiosClient";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -133,6 +134,24 @@ const UsersPage: React.FC = () => {
     } catch (err: unknown) {
       const anyErr = err as { response?: { data?: { detail?: string } } };
       message.error(anyErr.response?.data?.detail || "Không thể thay đổi vai trò.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: User) => {
+    if (user.id === currentUser?.id) {
+      message.warning("Bạn không thể tự xóa tài khoản của chính mình!");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await axiosClient.delete(`/admin/users/${user.id}`);
+      message.success(`Đã xóa tài khoản "${user.full_name}" (${user.email}) thành công.`);
+      fetchUsers();
+    } catch (err: unknown) {
+      const anyErr = err as { response?: { data?: { detail?: string } } };
+      message.error(anyErr.response?.data?.detail || "Không thể xóa người dùng.");
     } finally {
       setActionLoading(false);
     }
@@ -262,6 +281,32 @@ const UsersPage: React.FC = () => {
                   disabled={isSelf || actionLoading}
                 >
                   {record.is_active ? "Khóa" : "Mở khóa"}
+                </Button>
+              </Popconfirm>
+            </Tooltip>
+            <Tooltip
+              title={
+                isSelf
+                  ? "Bạn không thể tự xóa tài khoản của chính mình"
+                  : "Xóa vĩnh viễn tài khoản người dùng"
+              }
+            >
+              <Popconfirm
+                title="Xóa người dùng vĩnh viễn"
+                description={`Bạn có chắc chắn muốn xóa tài khoản "${record.full_name}" không?`}
+                onConfirm={() => handleDeleteUser(record)}
+                okText="Xóa vĩnh viễn"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+                disabled={isSelf || actionLoading}
+              >
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  disabled={isSelf || actionLoading}
+                >
+                  Xóa
                 </Button>
               </Popconfirm>
             </Tooltip>

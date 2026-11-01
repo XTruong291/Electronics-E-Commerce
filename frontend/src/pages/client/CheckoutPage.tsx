@@ -16,6 +16,7 @@ import {
   message,
   Avatar,
   List,
+  Popconfirm,
 } from "antd";
 import {
   ShoppingCartOutlined,
@@ -29,7 +30,7 @@ import {
 import { Link } from "react-router-dom";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
-import { createOrder } from "../../api/order.api";
+import { createOrder, cancelMyOrder } from "../../api/order.api";
 import axiosClient from "../../api/axiosClient";
 import type { Order, OrderCreatePayload } from "../../types/order";
 import type { Address } from "../../types/auth";
@@ -58,6 +59,7 @@ const CheckoutPage: React.FC = () => {
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [cancelling, setCancelling] = useState<boolean>(false);
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
 
   // Nếu người dùng đã đăng nhập, nạp thông tin mặc định & sổ địa chỉ
@@ -146,25 +148,58 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
-  // MÀN HÌNH ĐẶT HÀNG THÀNH CÔNG
+  const handleCancelPlacedOrder = async () => {
+    if (!placedOrder) return;
+    setCancelling(true);
+    try {
+      const updated = await cancelMyOrder(placedOrder.id);
+      setPlacedOrder(updated);
+      message.success("Đã hủy đơn hàng thành công! Sản phẩm đã được hoàn lại kho.");
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { detail?: string } } };
+      message.error(
+        errorObj.response?.data?.detail || "Không thể hủy đơn hàng. Vui lòng thử lại!"
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  // MÀN HÌNH ĐẶT HÀNG THÀNH CÔNG / ĐÃ HỦY
   if (placedOrder) {
+    const isCancelled = placedOrder.status === "CANCELLED";
     return (
       <div style={{ maxWidth: 800, margin: "40px auto", padding: "0 16px" }}>
         <Card style={{ borderRadius: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.06)", padding: "24px 12px" }}>
           <Result
-            status="success"
-            title="Đặt hàng thành công!"
-            subTitle={`Mã đơn hàng: #${placedOrder.id} | Chúng tôi đã nhận được đơn hàng và đang chuẩn bị giao đến bạn.`}
+            status={isCancelled ? "warning" : "success"}
+            title={isCancelled ? "Đơn hàng đã được hủy thành công!" : "Đặt hàng thành công!"}
+            subTitle={
+              isCancelled
+                ? `Mã đơn hàng: #${placedOrder.id} | Đơn hàng đã hủy và tồn kho đã được hoàn lại.`
+                : `Mã đơn hàng: #${placedOrder.id} | Chúng tôi đã nhận được đơn hàng và đang chuẩn bị giao đến bạn.`
+            }
             extra={[
               <Link to="/" key="home">
                 <Button icon={<ShopOutlined />}>Tiếp tục mua hàng</Button>
               </Link>,
-              isAuthenticated ? (
-                <Link to="/orders" key="orders">
-                  <Button type="primary" style={{ background: "#cb1c22", borderColor: "#cb1c22" }}>
-                    Xem đơn hàng của tôi
-                  </Button>
-                </Link>
+              <Link to="/orders" key="orders">
+                <Button type="primary" style={{ background: "#cb1c22", borderColor: "#cb1c22" }}>
+                  Xem đơn hàng của tôi
+                </Button>
+              </Link>,
+              !isCancelled ? (
+                <Popconfirm
+                  key="cancel"
+                  title="Hủy đơn hàng vừa đặt"
+                  description="Bạn có chắc chắn muốn hủy đơn hàng này không? Sản phẩm sẽ được hoàn lại kho."
+                  okText="Đồng ý hủy"
+                  cancelText="Không"
+                  okButtonProps={{ danger: true, loading: cancelling }}
+                  onConfirm={handleCancelPlacedOrder}
+                >
+                  <Button danger>Hủy đơn hàng này</Button>
+                </Popconfirm>
               ) : null,
             ]}
           >

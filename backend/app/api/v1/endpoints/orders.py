@@ -3,7 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user, get_optional_current_user
-from app.crud.order import create_order, get_order_by_id, list_user_orders
+from app.crud.order import (
+    cancel_customer_order,
+    create_order,
+    get_order_by_id,
+    list_user_orders,
+)
 from app.database import get_db
 from app.models.user import User
 from app.schemas.order import (
@@ -19,11 +24,27 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 def place_order(
     payload: OrderCreate,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_active_user),
 ):
-    """Đặt hàng mới (Hỗ trợ cả khách vãng lai và khách hàng đã đăng nhập)."""
-    user_id = current_user.id if current_user else None
-    order = create_order(db=db, obj_in=payload, user_id=user_id)
+    """Đặt hàng mới (Bắt buộc đăng nhập)."""
+    order = create_order(db=db, obj_in=payload, user_id=current_user.id)
+    return OrderResponse.model_validate(order)
+
+
+@router.post("/{order_id}/cancel", response_model=OrderResponse)
+def cancel_my_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Khách hàng tự hủy đơn hàng khi đơn ở trạng thái PENDING."""
+    is_admin_or_staff = str(getattr(current_user, "role", "")).upper() in ("ADMIN", "STAFF", "USERROLE.ADMIN", "USERROLE.STAFF")
+    order = cancel_customer_order(
+        db=db,
+        order_id=order_id,
+        user_id=current_user.id,
+        is_admin_or_staff=is_admin_or_staff,
+    )
     return OrderResponse.model_validate(order)
 
 

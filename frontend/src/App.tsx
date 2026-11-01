@@ -59,7 +59,14 @@ const App: React.FC = () => {
           <Route path="/" element={<StoreLayout />}>
             <Route index element={<HomePage />} />
             <Route path="products/:slug" element={<ProductDetailPage />} />
-            <Route path="checkout" element={<CheckoutPage />} />
+            <Route
+              path="checkout"
+              element={
+                <ProtectedRoute>
+                  <CheckoutPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="orders"
               element={

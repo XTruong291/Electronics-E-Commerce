@@ -25,10 +25,30 @@ def customer_headers(db_session):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_create_order_guest_and_stock_deduction(client: TestClient, db_session):
-    """Test guest order placement: validates stock deduction, snapshotting, and calculation."""
+def test_create_order_unauthenticated_fails(client: TestClient, db_session):
+    """Test that creating an order without login fails with 401."""
     db_session.rollback()
-    product = db_session.query(Product).filter(Product.sku == "LAP-APPLE-MBA-M2").first()
+    product = db_session.query(Product).first()
+    assert product is not None
+
+    payload = {
+        "recipient_name": "Khach Khong Dang Nhap",
+        "recipient_phone": "0911223344",
+        "shipping_address": "123 Cau Giay, Ha Noi",
+        "payment_method": "COD",
+        "items": [{"product_id": product.id, "quantity": 1}],
+    }
+
+    res = client.post("/api/v1/orders", json=payload)
+    assert res.status_code == 401
+
+
+def test_create_order_customer_success_and_stock_deduction(
+    client: TestClient, customer_headers, db_session
+):
+    """Test customer order placement: validates stock deduction, snapshotting, and calculation."""
+    db_session.rollback()
+    product = db_session.query(Product).first()
     assert product is not None
     initial_stock = product.stock
     expected_unit_price = product.sale_price if product.sale_price else product.price
@@ -47,11 +67,11 @@ def test_create_order_guest_and_stock_deduction(client: TestClient, db_session):
         ],
     }
 
-    res = client.post("/api/v1/orders", json=payload)
+    res = client.post("/api/v1/orders", json=payload, headers=customer_headers)
     assert res.status_code == 201
     order_data = res.json()
 
-    assert order_data["user_id"] is None  # Guest
+    assert order_data["user_id"] is not None
     assert order_data["status"] == "PENDING"
     assert order_data["total_amount"] == expected_unit_price * 2
     assert len(order_data["items"]) == 1
@@ -59,16 +79,16 @@ def test_create_order_guest_and_stock_deduction(client: TestClient, db_session):
     assert order_data["items"][0]["unit_price"] == expected_unit_price
     assert order_data["items"][0]["quantity"] == 2
 
-    # Check inventory deducted (commit/rollback test session to read latest DB state)
+    # Check inventory deducted
     db_session.rollback()
     refreshed_prod = db_session.query(Product).filter(Product.id == product.id).first()
     assert refreshed_prod.stock == initial_stock - 2
 
 
-def test_create_order_insufficient_stock_fails(client: TestClient, db_session):
+def test_create_order_insufficient_stock_fails(client: TestClient, customer_headers, db_session):
     """Test that ordering more than available stock is rejected."""
     db_session.rollback()
-    product = db_session.query(Product).filter(Product.sku == "LAP-ASUS-ROG-G16").first()
+    product = db_session.query(Product).first()
     assert product is not None
 
     payload = {
@@ -84,7 +104,7 @@ def test_create_order_insufficient_stock_fails(client: TestClient, db_session):
         ],
     }
 
-    res = client.post("/api/v1/orders", json=payload)
+    res = client.post("/api/v1/orders", json=payload, headers=customer_headers)
     assert res.status_code == 400
     assert "không đủ số lượng đặt" in res.json()["detail"]
 
@@ -177,3 +197,95 @@ def test_admin_update_order_status_and_cancellation_restock(
     )
     assert retry_res.status_code == 400
     assert "Không thể thay đổi trạng thái" in retry_res.json()["detail"]
+
+
+def test_customer_cancel_pending_order_success_and_restocks(
+    client: TestClient, customer_headers, db_session
+):
+    """Test that customer can cancel their own pending order and stock is restored."""
+    db_session.rollback()
+    product = db_session.query(Product).first()
+    stock_before = product.stock
+
+    payload = {
+        "recipient_name": "Test Customer Cancel",
+        "recipient_phone": "0911998877",
+        "shipping_address": "Test Dia Chi Cancel",
+        "payment_method": "COD",
+        "items": [{"product_id": product.id, "quantity": 3}],
+    }
+    create_res = client.post("/api/v1/orders", json=payload, headers=customer_headers)
+    assert create_res.status_code == 201
+    order_id = create_res.json()["id"]
+
+    db_session.rollback()
+    assert db_session.query(Product).filter(Product.id == product.id).first().stock == stock_before - 3
+
+    # Customer cancels order
+    cancel_res = client.post(f"/api/v1/orders/{order_id}/cancel", headers=customer_headers)
+    assert cancel_res.status_code == 200
+    assert cancel_res.json()["status"] == "CANCELLED"
+
+    # Verify inventory restored
+    db_session.rollback()
+    assert db_session.query(Product).filter(Product.id == product.id).first().stock == stock_before
+
+
+def test_customer_cancel_confirmed_order_fails(
+    client: TestClient, admin_headers, customer_headers, db_session
+):
+    """Test that customer cannot cancel an order once it is CONFIRMED."""
+    db_session.rollback()
+    product = db_session.query(Product).first()
+
+    payload = {
+        "recipient_name": "Test Reject Cancel",
+        "recipient_phone": "0911998877",
+        "shipping_address": "Dia Chi Reject",
+        "payment_method": "COD",
+        "items": [{"product_id": product.id, "quantity": 1}],
+    }
+    create_res = client.post("/api/v1/orders", json=payload, headers=customer_headers)
+    assert create_res.status_code == 201
+    order_id = create_res.json()["id"]
+
+    # Admin confirms order
+    patch_res = client.patch(
+        f"/api/v1/admin/orders/{order_id}/status",
+        json={"status": "CONFIRMED"},
+        headers=admin_headers,
+    )
+    assert patch_res.status_code == 200
+
+    # Customer tries to cancel confirmed order -> rejected with 400
+    cancel_res = client.post(f"/api/v1/orders/{order_id}/cancel", headers=customer_headers)
+    assert cancel_res.status_code == 400
+    assert "Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận" in cancel_res.json()["detail"]
+
+
+def test_customer_cancel_another_user_order_rejected(
+    client: TestClient, admin_headers, customer_headers, db_session
+):
+    """Test that customer cannot cancel an order belonging to another user."""
+    db_session.rollback()
+    product = db_session.query(Product).first()
+
+    # Admin places an order
+    admin_order_res = client.post(
+        "/api/v1/orders",
+        json={
+            "recipient_name": "Admin Order",
+            "recipient_phone": "0900000000",
+            "shipping_address": "Admin Address",
+            "payment_method": "COD",
+            "items": [{"product_id": product.id, "quantity": 1}],
+        },
+        headers=admin_headers,
+    )
+    assert admin_order_res.status_code == 201
+    admin_order_id = admin_order_res.json()["id"]
+
+    # Customer tries to cancel admin's order -> 403 Forbidden or 404 Not Found
+    cancel_res = client.post(f"/api/v1/orders/{admin_order_id}/cancel", headers=customer_headers)
+    assert cancel_res.status_code in (403, 404)
+

@@ -7,7 +7,7 @@ import {
   GithubOutlined,
   ShoppingOutlined,
 } from "@ant-design/icons";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
 import { useAuthStore } from "../../store/useAuthStore";
 import type { AuthResponse } from "../../types/auth";
@@ -22,7 +22,11 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
 
-  const redirectUrl = searchParams.get("redirect") || "/";
+  const location = useLocation();
+  const redirectUrl =
+    searchParams.get("redirect") ||
+    (location.state as { from?: string } | null)?.from ||
+    "/";
 
   const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);

@@ -29,6 +29,7 @@ import {
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getProduct } from "../../api/catalog.api";
 import { useCartStore } from "../../store/useCartStore";
+import { useAuthStore } from "../../store/useAuthStore";
 import type { Product } from "../../types/catalog";
 
 const { Title, Text } = Typography;
@@ -41,6 +42,7 @@ const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
+  const user = useAuthStore((state) => state.user);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -143,7 +145,12 @@ const ProductDetailPage: React.FC = () => {
       return;
     }
     addItem(product, quantity);
-    navigate("/checkout");
+    if (!user) {
+      message.warning("Vui lòng đăng nhập để tiến hành đặt hàng");
+      navigate("/login?redirect=%2Fcheckout", { state: { from: "/checkout" } });
+    } else {
+      navigate("/checkout");
+    }
   };
 
   const specs = product.specifications || {};

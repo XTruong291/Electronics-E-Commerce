@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Layout,
   Button,
@@ -12,6 +12,7 @@ import {
   Image,
   Empty,
   Input,
+  message,
 } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -31,14 +32,16 @@ import {
   MobileOutlined,
   DesktopOutlined,
   CustomerServiceOutlined,
-  GiftOutlined,
   SafetyCertificateOutlined,
   CarOutlined,
   SyncOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
-import { Outlet, Link, useNavigate } from "react-router-dom";
+import { Outlet, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { useCartStore } from "../store/useCartStore";
+import { getCategories } from "../api/catalog.api";
+import type { Category } from "../types/catalog";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
@@ -50,9 +53,30 @@ const formatPrice = (val: number): string => {
 const StoreLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [cartOpen, setCartOpen] = useState(false);
   const [headerSearch, setHeaderSearch] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  const currentCategorySlug = searchParams.get("category");
+  const currentSearch = searchParams.get("search") || "";
+
+  useEffect(() => {
+    setHeaderSearch(currentSearch);
+  }, [currentSearch]);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const list = await getCategories(false);
+        setCategories(list);
+      } catch (err) {
+        console.error("Lỗi nạp danh mục:", err);
+      }
+    };
+    fetchCats();
+  }, []);
 
   // Cart store hooks
   const cartItems = useCartStore((state) => state.items);
@@ -74,6 +98,22 @@ const StoreLayout: React.FC = () => {
       navigate("/");
     }
   };
+
+  const getCategoryIcon = (slug: string) => {
+    const s = slug.toLowerCase();
+    if (s.includes("laptop")) return <LaptopOutlined />;
+    if (s.includes("thoai") || s.includes("phone")) return <MobileOutlined />;
+    if (s.includes("man") || s.includes("screen") || s.includes("monitor")) return <DesktopOutlined />;
+    if (s.includes("phu-kien") || s.includes("accessory")) return <CustomerServiceOutlined />;
+    return <ThunderboltFilled />;
+  };
+
+  const displayCats = categories.length > 0 ? categories : [
+    { id: 1, name: "Laptop", slug: "laptop" } as Category,
+    { id: 2, name: "Điện thoại", slug: "dien-thoai" } as Category,
+    { id: 3, name: "Màn hình", slug: "man-hinh" } as Category,
+    { id: 4, name: "Phụ kiện", slug: "phu-kien" } as Category,
+  ];
 
   const userMenuItems: MenuProps["items"] = [
     {
@@ -118,14 +158,6 @@ const StoreLayout: React.FC = () => {
       danger: true,
       onClick: handleLogout,
     },
-  ];
-
-  const quickNavItems = [
-    { label: "Laptop", icon: <LaptopOutlined />, keyword: "Laptop" },
-    { label: "Điện thoại", icon: <MobileOutlined />, keyword: "Điện thoại" },
-    { label: "Màn hình", icon: <DesktopOutlined />, keyword: "Màn hình" },
-    { label: "Phụ kiện", icon: <CustomerServiceOutlined />, keyword: "Phụ kiện" },
-    { label: "Khuyến mãi Hot", icon: <GiftOutlined style={{ color: "#d70018" }} />, keyword: "" },
   ];
 
   return (
@@ -388,32 +420,61 @@ const StoreLayout: React.FC = () => {
             height: 42,
             display: "flex",
             alignItems: "center",
-            gap: 20,
+            gap: 12,
             overflowX: "auto",
           }}
         >
-          {quickNavItems.map((item, idx) => (
-            <Link
-              key={idx}
-              to={item.keyword ? `/?search=${encodeURIComponent(item.keyword)}` : "/"}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                color: "#374151",
-                fontSize: 13,
-                fontWeight: 500,
-                textDecoration: "none",
-                whiteSpace: "nowrap",
-                transition: "color 0.2s ease",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#cb1c22")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#374151")}
-            >
-              <span style={{ fontSize: 14 }}>{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {/* 1. All Products */}
+          <Link
+            to="/"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 13,
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s ease",
+              padding: "4px 12px",
+              borderRadius: 16,
+              background: !currentCategorySlug ? "rgba(203, 28, 34, 0.08)" : "transparent",
+              color: !currentCategorySlug ? "#cb1c22" : "#4b5563",
+              fontWeight: !currentCategorySlug ? 700 : 500,
+              border: !currentCategorySlug ? "1px solid rgba(203, 28, 34, 0.2)" : "1px solid transparent",
+            }}
+          >
+            <AppstoreOutlined style={{ fontSize: 14 }} />
+            <span>Tất cả sản phẩm</span>
+          </Link>
+
+          {/* 2. Dynamic Categories */}
+          {displayCats.map((cat) => {
+            const isActive = currentCategorySlug === cat.slug;
+            return (
+              <Link
+                key={cat.id || cat.slug}
+                to={`/?category=${cat.slug}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 13,
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.2s ease",
+                  padding: "4px 12px",
+                  borderRadius: 16,
+                  background: isActive ? "rgba(203, 28, 34, 0.08)" : "transparent",
+                  color: isActive ? "#cb1c22" : "#4b5563",
+                  fontWeight: isActive ? 700 : 500,
+                  border: isActive ? "1px solid rgba(203, 28, 34, 0.2)" : "1px solid transparent",
+                }}
+              >
+                <span style={{ fontSize: 14 }}>{getCategoryIcon(cat.slug)}</span>
+                <span>{cat.name}</span>
+              </Link>
+            );
+          })}
 
           {(user?.role === "ADMIN" || user?.role === "STAFF") && (
             <Link
@@ -605,7 +666,12 @@ const StoreLayout: React.FC = () => {
                 icon={<ArrowRightOutlined />}
                 onClick={() => {
                   setCartOpen(false);
-                  navigate("/checkout");
+                  if (!user) {
+                    message.warning("Vui lòng đăng nhập để tiến hành đặt hàng");
+                    navigate("/login?redirect=%2Fcheckout", { state: { from: "/checkout" } });
+                  } else {
+                    navigate("/checkout");
+                  }
                 }}
                 style={{
                   height: 48,

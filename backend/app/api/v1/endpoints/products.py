@@ -28,6 +28,7 @@ router = APIRouter(prefix="/products", tags=["Products"])
 def get_products(
     search: Optional[str] = Query(None, description="Tìm kiếm theo tên, SKU, thương hiệu"),
     category_id: Optional[int] = Query(None, description="Lọc theo danh mục"),
+    category_slug: Optional[str] = Query(None, description="Lọc theo slug danh mục (laptop, dien-thoai, ...)"),
     brand: Optional[str] = Query(None, description="Lọc theo thương hiệu (Apple, Dell, Asus, ...)"),
     min_price: Optional[int] = Query(None, ge=0, description="Giá thấp nhất (VNĐ)"),
     max_price: Optional[int] = Query(None, ge=0, description="Giá cao nhất (VNĐ)"),
@@ -46,6 +47,7 @@ def get_products(
         db=db,
         search=search,
         category_id=category_id,
+        category_slug=category_slug,
         brand=brand,
         min_price=min_price,
         max_price=max_price,

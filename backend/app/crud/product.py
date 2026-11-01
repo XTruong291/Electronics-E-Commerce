@@ -61,6 +61,7 @@ def list_products(
     db: Session,
     search: Optional[str] = None,
     category_id: Optional[int] = None,
+    category_slug: Optional[str] = None,
     brand: Optional[str] = None,
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
@@ -78,7 +79,9 @@ def list_products(
     elif not include_inactive:
         query = query.filter(Product.is_active == True)  # noqa: E712
 
-    if category_id:
+    if category_slug:
+        query = query.join(Product.category).filter(Category.slug == category_slug.strip().lower())
+    elif category_id:
         query = query.filter(Product.category_id == category_id)
 
     if brand:

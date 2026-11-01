@@ -11,6 +11,8 @@ import {
   Spin,
   Empty,
   Button,
+  Popconfirm,
+  message,
 } from "antd";
 import {
   ShoppingOutlined,
@@ -19,9 +21,10 @@ import {
   CreditCardOutlined,
   ReloadOutlined,
   ShopOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
-import { getMyOrders } from "../../api/order.api";
+import { getMyOrders, cancelMyOrder } from "../../api/order.api";
 import type { Order, OrderStatus } from "../../types/order";
 
 const { Title, Text } = Typography;
@@ -53,6 +56,7 @@ const MyOrdersPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -66,6 +70,24 @@ const MyOrdersPage: React.FC = () => {
       setLoading(false);
     }
   }, [page, pageSize]);
+
+  const handleCancelOrder = async (orderId: number) => {
+    setCancellingId(orderId);
+    try {
+      const updated = await cancelMyOrder(orderId);
+      message.success("Đã hủy đơn hàng thành công! Số lượng sản phẩm đã được hoàn lại kho.");
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: updated.status } : o))
+      );
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { detail?: string } } };
+      message.error(
+        errorObj.response?.data?.detail || "Không thể hủy đơn hàng. Vui lòng thử lại!"
+      );
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -136,7 +158,23 @@ const MyOrdersPage: React.FC = () => {
                         {new Date(order.created_at).toLocaleString("vi-VN")}
                       </Text>
                     </Space>
-                    <div>{getStatusTag(order.status)}</div>
+                    <Space align="center" size={10}>
+                      {getStatusTag(order.status)}
+                      {order.status === "PENDING" && (
+                        <Popconfirm
+                          title="Hủy đơn hàng"
+                          description="Bạn có chắc chắn muốn hủy đơn hàng này không? Sản phẩm sẽ được hoàn lại kho."
+                          okText="Đồng ý hủy"
+                          cancelText="Không"
+                          okButtonProps={{ danger: true, loading: cancellingId === order.id }}
+                          onConfirm={() => handleCancelOrder(order.id)}
+                        >
+                          <Button danger size="small" icon={<CloseCircleOutlined />} style={{ borderRadius: 6 }}>
+                            Hủy đơn
+                          </Button>
+                        </Popconfirm>
+                      )}
+                    </Space>
                   </div>
                 }
               >

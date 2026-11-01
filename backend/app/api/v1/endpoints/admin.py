@@ -11,6 +11,7 @@ from app.crud.order import (
     update_order_status as update_order_status_crud,
 )
 from app.crud.user import (
+    delete_user,
     get_user_by_id,
     list_users,
     revoke_all_user_tokens,
@@ -201,3 +202,30 @@ def change_user_status(
     db.commit()
     db.refresh(target_user)
     return UserResponse.model_validate(target_user)
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)
+def delete_admin_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN])),
+):
+    """Xóa vĩnh viễn tài khoản người dùng (Chỉ dành cho ADMIN).
+    Admin không thể tự xóa tài khoản của chính mình.
+    """
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không thể tự xóa tài khoản của chính mình",
+        )
+
+    target_user = get_user_by_id(db, user_id)
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Người dùng không tồn tại",
+        )
+
+    delete_user(db=db, user=target_user)
+    return {"message": "Đã xóa người dùng thành công", "deleted_user_id": user_id}
+

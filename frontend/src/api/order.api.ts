@@ -33,6 +33,12 @@ export const getOrderDetail = async (
   )) as unknown as Order;
 };
 
+export const cancelMyOrder = async (orderId: number): Promise<Order> => {
+  return (await axiosClient.post(
+    `/orders/${orderId}/cancel`
+  )) as unknown as Order;
+};
+
 export const getAdminOrders = async (
   params?: OrderFilterParams
 ): Promise<OrderListResponse> => {

@@ -182,3 +182,33 @@ def update_order_status(
     db.refresh(order)
     return order
 
+
+def cancel_customer_order(
+    db: Session,
+    order_id: int,
+    user_id: int,
+    is_admin_or_staff: bool = False,
+) -> Order:
+    """Allow customer to cancel their own order if it is in PENDING status. Restocks products."""
+    order = get_order_by_id(db, order_id=order_id)
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Đơn hàng không tồn tại",
+        )
+
+    if order.user_id != user_id and not is_admin_or_staff:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền hủy đơn hàng này",
+        )
+
+    if order.status != OrderStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận",
+        )
+
+    return update_order_status(db, order, OrderStatus.CANCELLED)
+
+
