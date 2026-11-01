@@ -8,6 +8,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   ShopOutlined,
+  ThunderboltFilled,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
@@ -32,9 +33,9 @@ const AdminLayout: React.FC = () => {
       label: "Dashboard",
     },
     {
-      key: "/admin/users",
-      icon: <UserOutlined />,
-      label: "Người dùng",
+      key: "/admin/orders",
+      icon: <OrderedListOutlined />,
+      label: "Đơn hàng",
     },
     {
       key: "/admin/products",
@@ -47,9 +48,9 @@ const AdminLayout: React.FC = () => {
       label: "Danh mục",
     },
     {
-      key: "/admin/orders",
-      icon: <OrderedListOutlined />,
-      label: "Đơn hàng",
+      key: "/admin/users",
+      icon: <UserOutlined />,
+      label: "Người dùng",
     },
   ];
 
@@ -65,7 +66,10 @@ const AdminLayout: React.FC = () => {
         collapsed={collapsed}
         onCollapse={(value) => setCollapsed(value)}
         theme="dark"
-        width={220}
+        width={230}
+        style={{
+          background: "#111827",
+        }}
       >
         <div
           style={{
@@ -73,13 +77,15 @@ const AdminLayout: React.FC = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            gap: 8,
             color: "#fff",
             fontWeight: "bold",
-            fontSize: collapsed ? "14px" : "18px",
-            borderBottom: "1px solid rgba(255,255,255,0.1)",
+            fontSize: collapsed ? "14px" : "17px",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          {collapsed ? "ECO" : "E-COM ADMIN"}
+          <ThunderboltFilled style={{ color: "#cb1c22", fontSize: 20 }} />
+          {!collapsed && <span>XìMiStore Admin</span>}
         </div>
         <Menu
           theme="dark"
@@ -87,6 +93,10 @@ const AdminLayout: React.FC = () => {
           mode="inline"
           items={menuItems}
           onClick={({ key }) => navigate(key)}
+          style={{
+            background: "#111827",
+            marginTop: 8,
+          }}
         />
       </Sider>
 
@@ -98,16 +108,26 @@ const AdminLayout: React.FC = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            boxShadow: "0 1px 4px rgba(0,21,41,0.08)",
+            boxShadow: "0 1px 4px rgba(0,21,41,0.06)",
           }}
         >
-          <Title level={4} style={{ margin: 0 }}>
-            Quản trị hệ thống
+          <Title level={4} style={{ margin: 0, color: "#111827" }}>
+            Quản trị hệ thống XìMiStore
           </Title>
 
           <Space size="large" align="center">
-            <Link to="/" style={{ display: "flex", alignItems: "center", gap: 6, color: "#666" }}>
-              <ShopOutlined /> Xem cửa hàng
+            <Link
+              to="/"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                color: "#4b5563",
+                fontWeight: 500,
+                fontSize: 14,
+              }}
+            >
+              <ShopOutlined style={{ color: "#cb1c22" }} /> Xem cửa hàng
             </Link>
 
             {user && (
@@ -115,7 +135,7 @@ const AdminLayout: React.FC = () => {
                 <Avatar
                   src={user.avatar_url}
                   icon={!user.avatar_url && <UserOutlined />}
-                  style={{ backgroundColor: "#1677ff" }}
+                  style={{ backgroundColor: "#cb1c22" }}
                 />
                 <div>
                   <Text strong>{user.full_name}</Text>

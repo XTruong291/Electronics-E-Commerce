@@ -218,7 +218,7 @@ const CheckoutPage: React.FC = () => {
               </Paragraph>
               <Paragraph style={{ margin: "4px 0" }}>
                 <strong>Tổng thanh toán:</strong>{" "}
-                <span style={{ color: "#d9363e", fontWeight: 700, fontSize: 16 }}>
+                <span style={{ color: "#cb1c22", fontWeight: 700, fontSize: 16 }}>
                   {formatPrice(placedOrder.total_amount)}
                 </span>
               </Paragraph>
@@ -475,7 +475,7 @@ const CheckoutPage: React.FC = () => {
                   <Text strong style={{ fontSize: 16 }}>
                     Tổng thanh toán
                   </Text>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: "#d9363e" }}>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: "#cb1c22" }}>
                     {formatPrice(totalPrice)}
                   </span>
                 </div>

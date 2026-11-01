@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Row,
   Col,
@@ -14,6 +14,7 @@ import {
   Space,
   Tooltip,
 } from "antd";
+import type { CarouselRef } from "antd/es/carousel";
 import {
   ShoppingCartOutlined,
   SafetyCertificateOutlined,
@@ -22,6 +23,8 @@ import {
   SyncOutlined,
   FireFilled,
   ArrowRightOutlined,
+  LeftOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCategories, getProducts } from "../../api/catalog.api";
@@ -52,8 +55,8 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     id: 1,
     image: "/banners/banner-1.jpg",
     fallbackImage: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1600&auto=format&fit=crop&q=80",
-    tag: "TECHSTORE FLAGSHIP",
-    tagColor: "#dc2626",
+    tag: "XÌMISTORE FLAGSHIP",
+    tagColor: "#cb1c22",
     subtitle: "Cam kết 100% Chính hãng VN/A • Đổi mới trong 30 ngày",
     title: "Hệ Thống Bán Lẻ Thiết Bị Công Nghệ Đỉnh Cao",
     description: "Trải nghiệm Laptop, Smartphone và Phụ kiện cao cấp với chính sách bảo hành chính hãng toàn diện, hỗ trợ trả góp 0% lãi suất.",
@@ -65,7 +68,7 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     image: "/banners/banner-2.jpg",
     fallbackImage: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1600&auto=format&fit=crop&q=80",
     tag: "ĐẶC QUYỀN MUA SẮM",
-    tagColor: "#2563eb",
+    tagColor: "#cb1c22",
     subtitle: "Giao hàng hỏa tốc 2H • Miễn phí vận chuyển toàn quốc",
     title: "Ưu Đãi Độc Quyền & Trợ Giá Lên Đời Đến 3 Triệu",
     description: "Định giá máy cũ nhanh chóng qua hệ thống chuẩn xác, hỗ trợ chuyển đổi dữ liệu và trợ giá trực tiếp khi nâng cấp thiết bị mới.",
@@ -77,9 +80,9 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     image: "/banners/banner-3.jpg",
     fallbackImage: "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=1600&auto=format&fit=crop&q=80",
     tag: "DỊCH VỤ 5 SAO",
-    tagColor: "#10b981",
+    tagColor: "#cb1c22",
     subtitle: "Hỗ trợ kỹ thuật 24/7 • Vệ sinh & Cài đặt máy trọn đời",
-    title: "An Tâm Tuyệt Đối Với Chế Độ Hậu Mãi",
+    title: "An Tâm Tuyệt Đối Với Chế Độ Hậu Mãi Chu Đáo",
     description: "Đội ngũ chuyên viên kỹ thuật chuyên nghiệp luôn sẵn sàng hỗ trợ khách hàng từ bảo dưỡng định kỳ đến xử lý sự cố từ xa.",
     ctaText: "Mua sắm ngay",
     hideTextOverlay: false,
@@ -90,6 +93,7 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const addItem = useCartStore((state) => state.addItem);
+  const carouselRef = useRef<CarouselRef>(null);
 
   // Data states
   const [categories, setCategories] = useState<Category[]>([]);
@@ -175,7 +179,7 @@ const HomePage: React.FC = () => {
     fetchProductList();
   }, [fetchProductList]);
 
-  // Danh sách thương hiệu khớp chuẩn 100% với 50 sản phẩm trong DB
+  // Danh sách thương hiệu khớp chuẩn 100% với các sản phẩm trong DB
   const popularBrands = [
     "Apple",
     "Dell",
@@ -239,8 +243,8 @@ const HomePage: React.FC = () => {
 
   return (
     <div>
-      {/* 1. HERO BANNER: FULL-WIDTH 100% CAROUSEL THƯƠNG HIỆU THUẦN TÚY */}
-      <div style={{ marginBottom: 24 }}>
+      {/* 1. HERO BANNER: FULL-WIDTH CAROUSEL VỚI KHẢ NĂNG LƯỚT / VUỐT QUA LẠI VÀ NÚT ĐIỀU HƯỚNG */}
+      <div style={{ marginBottom: 24, position: "relative" }}>
         <div
           style={{
             borderRadius: 12,
@@ -248,14 +252,80 @@ const HomePage: React.FC = () => {
             boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
             height: 320,
             background: "#0f172a",
+            position: "relative",
           }}
         >
-          <Carousel autoplay effect="fade">
+          {/* Nút lướt sang trái */}
+          <button
+            type="button"
+            aria-label="Previous Slide"
+            onClick={() => carouselRef.current?.prev()}
+            style={{
+              position: "absolute",
+              left: 14,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 10,
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              background: "rgba(15, 23, 42, 0.65)",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(203, 28, 34, 0.85)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(15, 23, 42, 0.65)")}
+          >
+            <LeftOutlined style={{ fontSize: 16 }} />
+          </button>
+
+          {/* Nút lướt sang phải */}
+          <button
+            type="button"
+            aria-label="Next Slide"
+            onClick={() => carouselRef.current?.next()}
+            style={{
+              position: "absolute",
+              right: 14,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 10,
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              background: "rgba(15, 23, 42, 0.65)",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(203, 28, 34, 0.85)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(15, 23, 42, 0.65)")}
+          >
+            <RightOutlined style={{ fontSize: 16 }} />
+          </button>
+
+          <Carousel
+            ref={carouselRef}
+            autoplay
+            autoplaySpeed={4500}
+            draggable
+            swipeToSlide
+            infinite
+          >
             {HERO_BANNERS.map((banner) => {
               const bgUrl = failedBanners[banner.id] ? banner.fallbackImage : banner.image;
               return (
                 <div key={banner.id}>
-                  {/* Hidden preloader for fallback */}
+                  {/* Preloader for image errors */}
                   <img
                     src={banner.image}
                     alt=""
@@ -265,14 +335,13 @@ const HomePage: React.FC = () => {
                     }
                   />
                   <div
-                    onClick={scrollToProducts}
                     style={{
                       height: 320,
                       backgroundImage: `url('${bgUrl}')`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
-                      cursor: "pointer",
                       position: "relative",
+                      userSelect: "none",
                     }}
                   >
                     {!banner.hideTextOverlay && (
@@ -281,29 +350,35 @@ const HomePage: React.FC = () => {
                           position: "absolute",
                           inset: 0,
                           background:
-                            "linear-gradient(90deg, rgba(15, 23, 42, 0.72) 0%, rgba(15, 23, 42, 0.35) 55%, rgba(15, 23, 42, 0.05) 100%)",
+                            "linear-gradient(90deg, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.5) 60%, rgba(15, 23, 42, 0.15) 100%)",
                           display: "flex",
                           flexDirection: "column",
                           justifyContent: "center",
-                          padding: "0 48px",
+                          padding: "0 60px",
                           color: "#fff",
                         }}
                       >
                         {banner.tag && (
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                            <Tag
-                              color={banner.tagColor || "#dc2626"}
+                            <span
                               style={{
-                                color: "#fff",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                background: "#cb1c22",
+                                backgroundColor: "#cb1c22",
+                                color: "#ffffff",
                                 fontWeight: 800,
                                 fontSize: 12,
-                                border: "none",
-                                padding: "2px 10px",
-                                borderRadius: 20,
+                                padding: "4px 12px",
+                                borderRadius: 9999,
+                                letterSpacing: "0.5px",
+                                boxShadow: "0 2px 8px rgba(203, 28, 34, 0.45)",
                               }}
                             >
-                              <FireFilled /> {banner.tag}
-                            </Tag>
+                              <FireFilled style={{ color: "#ffffff", fontSize: 13 }} />
+                              <span style={{ color: "#ffffff", fontWeight: 800 }}>{banner.tag}</span>
+                            </span>
                             {banner.subtitle && (
                               <span style={{ fontSize: 13, color: "rgba(255,255,255,0.92)" }}>
                                 {banner.subtitle}
@@ -325,7 +400,7 @@ const HomePage: React.FC = () => {
                           <Button
                             size="large"
                             style={{
-                              background: "#dc2626",
+                              background: "#cb1c22",
                               color: "#fff",
                               fontWeight: 700,
                               borderRadius: 8,
@@ -334,10 +409,7 @@ const HomePage: React.FC = () => {
                               padding: "0 24px",
                               boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                             }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              scrollToProducts();
-                            }}
+                            onClick={() => scrollToProducts()}
                           >
                             {banner.ctaText || "Khám phá ngay"} <ArrowRightOutlined />
                           </Button>
@@ -365,7 +437,7 @@ const HomePage: React.FC = () => {
           }}
           bodyStyle={{ padding: "16px 20px" }}
         >
-          {/* Hàng 1: Brand Quick-Pills (13 Hãng khớp 100% với Seed DB) */}
+          {/* Hàng 1: Brand Quick-Pills */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "#4b5563", marginRight: 4 }}>
@@ -511,7 +583,7 @@ const HomePage: React.FC = () => {
         </Card>
       </div>
 
-      {/* 3. PRODUCT CARDS GRID (CHUẨN UI_DESIGN_SKILL.MD) */}
+      {/* 3. PRODUCT CARDS GRID */}
       <Spin spinning={loading} tip="Đang tải danh sách thiết bị...">
         {products.length === 0 && !loading ? (
           <Empty
@@ -577,7 +649,7 @@ const HomePage: React.FC = () => {
                         {hasDiscount ? (
                           <span
                             style={{
-                              background: "#d70018",
+                              background: "#cb1c22",
                               color: "#fff",
                               fontSize: 11,
                               fontWeight: 700,
@@ -704,7 +776,7 @@ const HomePage: React.FC = () => {
                       <div style={{ marginBottom: 10 }}>
                         {hasDiscount ? (
                           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                            <span style={{ color: "#d70018", fontWeight: 800, fontSize: 17 }}>
+                            <span style={{ color: "#cb1c22", fontWeight: 800, fontSize: 17 }}>
                               {formatPrice(product.sale_price as number)}
                             </span>
                             <span style={{ color: "#9ca3af", textDecoration: "line-through", fontSize: 12 }}>
@@ -712,7 +784,7 @@ const HomePage: React.FC = () => {
                             </span>
                           </div>
                         ) : (
-                          <div style={{ color: "#d70018", fontWeight: 800, fontSize: 17 }}>
+                          <div style={{ color: "#cb1c22", fontWeight: 800, fontSize: 17 }}>
                             {formatPrice(product.price)}
                           </div>
                         )}
@@ -762,7 +834,7 @@ const HomePage: React.FC = () => {
         </div>
       )}
 
-      {/* 5. STORE VALUES / BRAND PROMISES */}
+      {/* 5. STORE VALUES / BRAND PROMISES (CHUẨN TÔNG ĐỎ XÌMISTORE & SURFACE #FEF2F2) */}
       <div
         style={{
           marginTop: 40,
@@ -775,53 +847,113 @@ const HomePage: React.FC = () => {
       >
         <Row gutter={[24, 20]}>
           <Col xs={24} sm={12} md={6}>
-            <Space align="start" size={14}>
-              <SafetyCertificateOutlined style={{ fontSize: 32, color: "#16a34a" }} />
+            <Space align="center" size={14}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: "#fef2f2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  color: "#cb1c22",
+                  fontSize: 22,
+                }}
+              >
+                <SafetyCertificateOutlined />
+              </div>
               <div>
                 <Text strong style={{ fontSize: 14, color: "#111827", display: "block" }}>
                   100% Hàng Chính Hãng
                 </Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Cam kết nguồn gốc xuất xứ, đầy đủ hóa đơn VAT
+                  Nguồn gốc xuất xứ, đầy đủ VAT
                 </Text>
               </div>
             </Space>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Space align="start" size={14}>
-              <RocketOutlined style={{ fontSize: 32, color: "#2563eb" }} />
+            <Space align="center" size={14}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: "#fef2f2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  color: "#cb1c22",
+                  fontSize: 22,
+                }}
+              >
+                <RocketOutlined />
+              </div>
               <div>
                 <Text strong style={{ fontSize: 14, color: "#111827", display: "block" }}>
                   Giao Hàng Siêu Tốc
                 </Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Giao nhanh trong 2 giờ hoặc toàn quốc miễn phí
+                  Nhanh 2h hoặc toàn quốc miễn phí
                 </Text>
               </div>
             </Space>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Space align="start" size={14}>
-              <SyncOutlined style={{ fontSize: 32, color: "#ea580c" }} />
+            <Space align="center" size={14}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: "#fef2f2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  color: "#cb1c22",
+                  fontSize: 22,
+                }}
+              >
+                <SyncOutlined />
+              </div>
               <div>
                 <Text strong style={{ fontSize: 14, color: "#111827", display: "block" }}>
                   Đổi Trả Trong 30 Ngày
                 </Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Lỗi phần cứng 1 đổi 1 tận nơi nhanh chóng
+                  Lỗi phần cứng 1 đổi 1 tận nơi
                 </Text>
               </div>
             </Space>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Space align="start" size={14}>
-              <CustomerServiceOutlined style={{ fontSize: 32, color: "#9333ea" }} />
+            <Space align="center" size={14}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: "#fef2f2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  color: "#cb1c22",
+                  fontSize: 22,
+                }}
+              >
+                <CustomerServiceOutlined />
+              </div>
               <div>
                 <Text strong style={{ fontSize: 14, color: "#111827", display: "block" }}>
                   Hỗ Trợ Kỹ Thuật 24/7
                 </Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Đội ngũ kỹ thuật viên giàu kinh nghiệm
+                  Kỹ thuật viên nhiệt tình chu đáo
                 </Text>
               </div>
             </Space>

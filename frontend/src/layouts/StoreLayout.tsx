@@ -162,7 +162,7 @@ const StoreLayout: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f4f5f7" }}>
-      {/* 1. TOP STICKY HEADER (FPT SHOP TECH RED #cb1c22) */}
+      {/* 1. TOP STICKY HEADER (XÌMISTORE TECH RED #cb1c22) */}
       <Header
         style={{
           position: "sticky",
@@ -192,7 +192,7 @@ const StoreLayout: React.FC = () => {
             lineHeight: "normal",
           }}
         >
-          {/* Brand Logo */}
+          {/* Brand Logo - XìMiStore */}
           <Link
             to="/"
             style={{
@@ -241,14 +241,14 @@ const StoreLayout: React.FC = () => {
                   padding: 0,
                 }}
               >
-                TECHSTORE
+                XìMiStore
               </span>
               <span
                 className="header-subtext"
                 style={{
                   fontSize: 10,
                   fontWeight: 600,
-                  color: "rgba(255,255,255,0.85)",
+                  color: "rgba(255,255,255,0.9)",
                   letterSpacing: 1.2,
                   textTransform: "uppercase",
                   display: "block",
@@ -258,7 +258,7 @@ const StoreLayout: React.FC = () => {
                   padding: 0,
                 }}
               >
-                High-End Devices
+                Thiết Bị Công Nghệ
               </span>
             </div>
           </Link>
@@ -532,7 +532,7 @@ const StoreLayout: React.FC = () => {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <ThunderboltFilled style={{ fontSize: 22, color: "#cb1c22" }} />
-                <span style={{ fontSize: 18, fontWeight: 800, color: "#111827" }}>TECHSTORE</span>
+                <span style={{ fontSize: 18, fontWeight: 800, color: "#111827" }}>XìMiStore</span>
               </div>
               <p style={{ fontSize: 13, lineHeight: 1.6, color: "#6b7280", margin: 0 }}>
                 Hệ thống phân phối thiết bị công nghệ, laptop gaming, điện thoại và phụ kiện chính hãng 100% tại Việt Nam.
@@ -563,13 +563,13 @@ const StoreLayout: React.FC = () => {
               </Title>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <SafetyCertificateOutlined style={{ color: "#52c41a" }} /> 100% Hàng chính hãng nguyên seal
+                  <SafetyCertificateOutlined style={{ color: "#cb1c22" }} /> 100% Hàng chính hãng nguyên seal
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <CarOutlined style={{ color: "#1677ff" }} /> Miễn phí giao hàng toàn quốc
+                  <CarOutlined style={{ color: "#cb1c22" }} /> Miễn phí giao hàng toàn quốc
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <SyncOutlined style={{ color: "#faad14" }} /> Lỗi 1 đổi 1 tận nơi nhanh chóng
+                  <SyncOutlined style={{ color: "#cb1c22" }} /> Lỗi 1 đổi 1 tận nơi nhanh chóng
                 </span>
               </div>
             </div>
@@ -594,7 +594,7 @@ const StoreLayout: React.FC = () => {
               color: "#9ca3af",
             }}
           >
-            © {new Date().getFullYear()} TECHSTORE. Bản quyền thuộc về hệ thống Thương mại điện tử Bán lẻ Công nghệ.
+            © {new Date().getFullYear()} XìMiStore. Bản quyền thuộc về hệ thống Thương mại điện tử Bán lẻ Công nghệ.
           </div>
         </div>
       </Footer>
@@ -635,7 +635,7 @@ const StoreLayout: React.FC = () => {
                 }}
               >
                 <Text type="secondary" style={{ fontSize: 14 }}>Vận chuyển:</Text>
-                <Text strong style={{ color: "#52c41a", fontSize: 14 }}>Miễn phí</Text>
+                <Text strong style={{ color: "#16a34a", fontSize: 14 }}>Miễn phí</Text>
               </div>
               <div
                 style={{
@@ -650,7 +650,7 @@ const StoreLayout: React.FC = () => {
                 <Text strong style={{ fontSize: 16 }}>Tổng thanh toán:</Text>
                 <span
                   style={{
-                    color: "#d70018",
+                    color: "#cb1c22",
                     fontSize: 20,
                     fontWeight: 800,
                   }}
@@ -761,7 +761,7 @@ const StoreLayout: React.FC = () => {
                     }
                     description={
                       <div>
-                        <div style={{ color: "#d70018", fontWeight: 700, fontSize: 14, marginTop: 4 }}>
+                        <div style={{ color: "#cb1c22", fontWeight: 700, fontSize: 14, marginTop: 4 }}>
                           {formatPrice(effectivePrice)}
                         </div>
                         <div style={{ marginTop: 8 }}>

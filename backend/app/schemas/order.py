@@ -62,3 +62,29 @@ class OrderListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class DailyRevenueItem(BaseModel):
+    date: str
+    revenue: int
+    order_count: int
+
+
+class OrderStatusCount(BaseModel):
+    PENDING: int = 0
+    CONFIRMED: int = 0
+    SHIPPING: int = 0
+    DELIVERED: int = 0
+    CANCELLED: int = 0
+
+
+class DashboardStatsResponse(BaseModel):
+    total_revenue: int
+    pending_revenue: int
+    total_orders: int
+    orders_by_status: OrderStatusCount
+    daily_stats: List[DailyRevenueItem]
+    recent_orders: List[OrderResponse]
+    total_products: int
+    total_categories: int
+    total_users: int

@@ -65,7 +65,7 @@ const RegisterPage: React.FC = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)",
+        background: "#f4f5f7",
         padding: "32px 16px",
       }}
     >
@@ -74,8 +74,8 @@ const RegisterPage: React.FC = () => {
           width: "100%",
           maxWidth: 460,
           borderRadius: 16,
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
-          border: "1px solid rgba(0, 0, 0, 0.06)",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)",
+          border: "1px solid #e5e7eb",
         }}
         styles={{ body: { padding: "36px 32px" } }}
       >
@@ -84,7 +84,7 @@ const RegisterPage: React.FC = () => {
             style={{
               width: 52,
               height: 52,
-              background: "#1677ff",
+              background: "#cb1c22",
               color: "#fff",
               borderRadius: "50%",
               display: "inline-flex",
@@ -92,15 +92,16 @@ const RegisterPage: React.FC = () => {
               justifyContent: "center",
               fontSize: 26,
               marginBottom: 12,
+              boxShadow: "0 4px 12px rgba(203, 28, 34, 0.25)",
             }}
           >
             <UserAddOutlined />
           </div>
-          <Title level={3} style={{ margin: "0 0 6px 0", fontWeight: 700 }}>
+          <Title level={3} style={{ margin: "0 0 6px 0", fontWeight: 700, color: "#111827" }}>
             Tạo tài khoản mới
           </Title>
           <Text type="secondary" style={{ fontSize: 14 }}>
-            Đăng ký để trải nghiệm mua sắm tiện lợi
+            Đăng ký để trải nghiệm mua sắm tại XìMiStore
           </Text>
         </div>
 
@@ -204,6 +205,8 @@ const RegisterPage: React.FC = () => {
                 borderRadius: 8,
                 fontWeight: 600,
                 fontSize: 15,
+                background: "#cb1c22",
+                borderColor: "#cb1c22",
               }}
             >
               Đăng ký tài khoản
@@ -215,7 +218,7 @@ const RegisterPage: React.FC = () => {
           Hoặc đăng ký nhanh với
         </Divider>
 
-        <Space orientation="vertical" style={{ width: "100%" }} size="middle">
+        <Space direction="vertical" style={{ width: "100%" }} size="middle">
           <Button
             block
             size="large"
@@ -254,7 +257,7 @@ const RegisterPage: React.FC = () => {
         <div style={{ textAlign: "center", marginTop: 24 }}>
           <Text type="secondary" style={{ fontSize: 14 }}>
             Đã có tài khoản?{" "}
-            <Link to="/login" style={{ fontWeight: 600, color: "#1677ff" }}>
+            <Link to="/login" style={{ fontWeight: 600, color: "#cb1c22" }}>
               Đăng nhập ngay
             </Link>
           </Text>
