@@ -1,20 +1,25 @@
 import React, { useState } from "react";
-import { Layout, Menu, Typography, theme } from "antd";
+import { Layout, Menu, Typography, theme, Button, Space, Tag, Avatar } from "antd";
 import {
   ShoppingOutlined,
   AppstoreOutlined,
   OrderedListOutlined,
   DashboardOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  ShopOutlined,
 } from "@ant-design/icons";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
+import { useAuthStore } from "../store/useAuthStore";
 
 const { Header, Content, Sider } = Layout;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const AdminLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuthStore();
 
   const {
     token: { colorBgContainer, borderRadiusLG },
@@ -27,21 +32,31 @@ const AdminLayout: React.FC = () => {
       label: "Dashboard",
     },
     {
+      key: "/admin/users",
+      icon: <UserOutlined />,
+      label: "Người dùng",
+    },
+    {
       key: "/admin/products",
       icon: <ShoppingOutlined />,
-      label: "Products",
+      label: "Sản phẩm",
     },
     {
       key: "/admin/categories",
       icon: <AppstoreOutlined />,
-      label: "Categories",
+      label: "Danh mục",
     },
     {
       key: "/admin/orders",
       icon: <OrderedListOutlined />,
-      label: "Orders",
+      label: "Đơn hàng",
     },
   ];
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -50,6 +65,7 @@ const AdminLayout: React.FC = () => {
         collapsed={collapsed}
         onCollapse={(value) => setCollapsed(value)}
         theme="dark"
+        width={220}
       >
         <div
           style={{
@@ -86,11 +102,41 @@ const AdminLayout: React.FC = () => {
           }}
         >
           <Title level={4} style={{ margin: 0 }}>
-            Admin Management
+            Quản trị hệ thống
           </Title>
-          <div style={{ color: "#666", fontSize: "14px" }}>
-            Admin Workspace
-          </div>
+
+          <Space size="large" align="center">
+            <Link to="/" style={{ display: "flex", alignItems: "center", gap: 6, color: "#666" }}>
+              <ShopOutlined /> Xem cửa hàng
+            </Link>
+
+            {user && (
+              <Space size="middle" align="center">
+                <Avatar
+                  src={user.avatar_url}
+                  icon={!user.avatar_url && <UserOutlined />}
+                  style={{ backgroundColor: "#1677ff" }}
+                />
+                <div>
+                  <Text strong>{user.full_name}</Text>
+                  <Tag
+                    color={user.role === "ADMIN" ? "magenta" : "blue"}
+                    style={{ marginLeft: 8 }}
+                  >
+                    {user.role}
+                  </Tag>
+                </div>
+                <Button
+                  icon={<LogoutOutlined />}
+                  onClick={handleLogout}
+                  danger
+                  type="text"
+                >
+                  Đăng xuất
+                </Button>
+              </Space>
+            )}
+          </Space>
         </Header>
 
         <Content style={{ margin: "24px 16px 0" }}>
