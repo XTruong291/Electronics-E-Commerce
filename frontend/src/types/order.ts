@@ -63,3 +63,28 @@ export interface OrderFilterParams {
   page_size?: number;
 }
 
+export interface DailyRevenueItem {
+  date: string;
+  revenue: number;
+  order_count: number;
+}
+
+export interface OrderStatusCount {
+  PENDING: number;
+  CONFIRMED: number;
+  SHIPPING: number;
+  DELIVERED: number;
+  CANCELLED: number;
+}
+
+export interface DashboardStatsResponse {
+  total_revenue: number;
+  pending_revenue: number;
+  total_orders: number;
+  orders_by_status: OrderStatusCount;
+  daily_stats: DailyRevenueItem[];
+  recent_orders: Order[];
+  total_products: number;
+  total_categories: number;
+  total_users: number;
+}

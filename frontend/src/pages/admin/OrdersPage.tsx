@@ -166,7 +166,7 @@ const OrdersPage: React.FC = () => {
       key: "total_amount",
       width: 140,
       render: (val: number) => (
-        <span style={{ fontWeight: 700, color: "#d9363e" }}>{formatPrice(val)}</span>
+        <span style={{ fontWeight: 700, color: "#cb1c22" }}>{formatPrice(val)}</span>
       ),
     },
     {
@@ -284,7 +284,7 @@ const OrdersPage: React.FC = () => {
         title={
           selectedOrder ? (
             <Space>
-              <OrderedListOutlined style={{ color: "#1677ff" }} />
+              <OrderedListOutlined style={{ color: "#cb1c22" }} />
               <span>Chi tiết Đơn hàng #{selectedOrder.id}</span>
               {getStatusTag(selectedOrder.status)}
             </Space>
@@ -390,7 +390,7 @@ const OrdersPage: React.FC = () => {
               <Text strong style={{ fontSize: 15 }}>
                 Tổng giá trị đơn:
               </Text>
-              <span style={{ fontSize: 20, fontWeight: 700, color: "#d9363e" }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: "#cb1c22" }}>
                 {formatPrice(selectedOrder.total_amount)}
               </span>
             </div>

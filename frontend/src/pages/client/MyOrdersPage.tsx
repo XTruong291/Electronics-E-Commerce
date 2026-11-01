@@ -151,7 +151,7 @@ const MyOrdersPage: React.FC = () => {
                     }}
                   >
                     <Space>
-                      <ShoppingOutlined style={{ color: "#1677ff" }} />
+                      <ShoppingOutlined style={{ color: "#cb1c22" }} />
                       <Text strong>Đơn hàng #{order.id}</Text>
                       <Text type="secondary" style={{ fontSize: 13 }}>
                         <CalendarOutlined style={{ marginRight: 4 }} />
@@ -247,7 +247,7 @@ const MyOrdersPage: React.FC = () => {
                       <Text type="secondary" style={{ marginRight: 8 }}>
                         Tổng tiền:
                       </Text>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: "#d9363e" }}>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: "#cb1c22" }}>
                         {formatPrice(order.total_amount)}
                       </span>
                     </div>

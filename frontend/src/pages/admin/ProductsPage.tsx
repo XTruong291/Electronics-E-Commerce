@@ -21,7 +21,9 @@ import {
   Divider,
   message,
   Tooltip,
+  Spin,
 } from "antd";
+import { useNavigate } from "react-router-dom";
 import {
   PlusOutlined,
   ReloadOutlined,
@@ -88,8 +90,10 @@ const COMMON_SPEC_SUGGESTIONS = [
 ];
 
 const ProductsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -115,11 +119,15 @@ const ProductsPage: React.FC = () => {
 
   // Fetch Categories for Filter and Form
   const loadCategories = useCallback(async () => {
+    setLoadingCategories(true);
     try {
       const data = await getCategories(true);
       setCategories(data);
-    } catch {
-      // Ignored
+    } catch (err) {
+      console.error("Lỗi tải danh mục:", err);
+      message.error("Không thể tải danh sách danh mục sản phẩm.");
+    } finally {
+      setLoadingCategories(false);
     }
   }, []);
 
@@ -156,6 +164,7 @@ const ProductsPage: React.FC = () => {
   }, [fetchProducts]);
 
   const handleOpenDrawer = async (prod?: Product) => {
+    loadCategories();
     if (prod) {
       try {
         // Fetch fresh detail with full specifications
@@ -186,7 +195,7 @@ const ProductsPage: React.FC = () => {
           description: fresh.description || "",
           is_active: fresh.is_active,
         });
-      } catch {
+      } catch (err) {
         message.error("Không thể tải chi tiết sản phẩm.");
         return;
       }
@@ -382,7 +391,7 @@ const ProductsPage: React.FC = () => {
           <div>
             {hasSale ? (
               <>
-                <div style={{ color: "#cf1322", fontWeight: 700, fontSize: 14 }}>
+                <div style={{ color: "#cb1c22", fontWeight: 700, fontSize: 14 }}>
                   {record.sale_price?.toLocaleString("vi-VN")} ₫
                 </div>
                 <div
@@ -527,13 +536,14 @@ const ProductsPage: React.FC = () => {
             }}
             style={{ width: 180 }}
             allowClear
-          >
-            {categories.map((c) => (
-              <Option key={c.id} value={c.id}>
-                {c.name}
-              </Option>
-            ))}
-          </Select>
+            loading={loadingCategories}
+            showSearch
+            optionFilterProp="label"
+            options={categories.map((c) => ({
+              label: c.name,
+              value: c.id,
+            }))}
+          />
 
           <Select
             placeholder="Lọc Trạng thái"
@@ -653,13 +663,40 @@ const ProductsPage: React.FC = () => {
                 label="Danh mục sản phẩm"
                 rules={[{ required: true, message: "Vui lòng chọn danh mục" }]}
               >
-                <Select placeholder="Chọn danh mục">
-                  {categories.map((c) => (
-                    <Option key={c.id} value={c.id}>
-                      {c.name}
-                    </Option>
-                  ))}
-                </Select>
+                <Select
+                  placeholder="Chọn danh mục"
+                  loading={loadingCategories}
+                  showSearch
+                  optionFilterProp="label"
+                  options={categories.map((c) => ({
+                    label: `${c.name}${!c.is_active ? " (Đã ẩn)" : ""}`,
+                    value: c.id,
+                  }))}
+                  notFoundContent={
+                    loadingCategories ? (
+                      <div style={{ padding: 12, textAlign: "center" }}>
+                        <Spin size="small" /> Đang tải danh mục...
+                      </div>
+                    ) : (
+                      <div style={{ padding: 12, textAlign: "center" }}>
+                        <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
+                          Chưa có danh mục nào trong hệ thống
+                        </Text>
+                        <Button
+                          type="primary"
+                          size="small"
+                          style={{ background: "#cb1c22", borderColor: "#cb1c22" }}
+                          onClick={() => {
+                            setDrawerOpen(false);
+                            navigate("/admin/categories");
+                          }}
+                        >
+                          + Đi đến Quản lý danh mục
+                        </Button>
+                      </div>
+                    )
+                  }
+                />
               </Form.Item>
             </Col>
             <Col span={8}>

@@ -1,10 +1,13 @@
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 from fastapi import HTTPException, status
-from sqlalchemy import or_
+from sqlalchemy import Date, case, cast, func, or_
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.category import Category
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.product import Product
+from app.models.user import User
 from app.schemas.order import OrderCreate
 
 
@@ -212,3 +215,105 @@ def cancel_customer_order(
     return update_order_status(db, order, OrderStatus.CANCELLED)
 
 
+def get_dashboard_stats(db: Session, days: int = 7) -> dict:
+    """Aggregate revenue, orders, daily timeline and counts for Admin Dashboard."""
+    # 1. Total delivered revenue
+    delivered_revenue = (
+        db.query(func.coalesce(func.sum(Order.total_amount), 0))
+        .filter(Order.status == OrderStatus.DELIVERED)
+        .scalar()
+    ) or 0
+
+    # 2. In-flight / pending revenue (orders being fulfilled, not cancelled)
+    pending_revenue = (
+        db.query(func.coalesce(func.sum(Order.total_amount), 0))
+        .filter(
+            Order.status.in_(
+                [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.SHIPPING]
+            )
+        )
+        .scalar()
+    ) or 0
+
+    # 3. Total orders and breakdown by status
+    total_orders = db.query(Order).count()
+    status_counts_raw = (
+        db.query(Order.status, func.count(Order.id))
+        .group_by(Order.status)
+        .all()
+    )
+    status_counts = {
+        "PENDING": 0,
+        "CONFIRMED": 0,
+        "SHIPPING": 0,
+        "DELIVERED": 0,
+        "CANCELLED": 0,
+    }
+    for st, count in status_counts_raw:
+        st_val = st.value if hasattr(st, "value") else str(st)
+        if st_val in status_counts:
+            status_counts[st_val] = count
+
+    # 4. Daily timeline for recent `days`
+    now = datetime.now(timezone.utc)
+    start_date = (now - timedelta(days=days - 1)).date()
+
+    daily_rows = (
+        db.query(
+            cast(Order.created_at, Date).label("order_date"),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Order.status != OrderStatus.CANCELLED, Order.total_amount),
+                        else_=0,
+                    )
+                ),
+                0,
+            ).label("revenue"),
+            func.count(Order.id).label("order_count"),
+        )
+        .filter(cast(Order.created_at, Date) >= start_date)
+        .group_by(cast(Order.created_at, Date))
+        .all()
+    )
+
+    daily_dict = {
+        row.order_date: (int(row.revenue), int(row.order_count))
+        for row in daily_rows
+    }
+
+    daily_stats = []
+    for i in range(days):
+        d = start_date + timedelta(days=i)
+        rev, cnt = daily_dict.get(d, (0, 0))
+        daily_stats.append({
+            "date": d.strftime("%d/%m"),
+            "revenue": rev,
+            "order_count": cnt,
+        })
+
+    # 5. Recent 5 orders
+    recent_orders = (
+        db.query(Order)
+        .options(joinedload(Order.items))
+        .order_by(Order.id.desc())
+        .limit(5)
+        .all()
+    )
+
+    # 6. Entity totals
+    total_products = db.query(Product).count()
+    total_categories = db.query(Category).count()
+    total_users = db.query(User).count()
+
+    return {
+        "total_revenue": int(delivered_revenue),
+        "pending_revenue": int(pending_revenue),
+        "total_orders": total_orders,
+        "orders_by_status": status_counts,
+        "daily_stats": daily_stats,
+        "recent_orders": recent_orders,
+        "total_products": total_products,
+        "total_categories": total_categories,
+        "total_users": total_users,
+    }
