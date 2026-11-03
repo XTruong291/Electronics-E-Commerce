@@ -54,11 +54,11 @@ export const HERO_BANNERS: HeroBannerItem[] = [
   {
     id: 1,
     image: "/banners/banner-1.jpg",
-    fallbackImage: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1600&auto=format&fit=crop&q=80",
+    fallbackImage: "https://athgroup.vn/upload/blocks/thumb_1920x0/blocks-0-1690355547-1690355547.jpg",
     tag: "XÌMISTORE FLAGSHIP",
     tagColor: "#cb1c22",
     subtitle: "Cam kết 100% Chính hãng VN/A • Đổi mới trong 30 ngày",
-    title: "Hệ Thống Bán Lẻ Thiết Bị Công Nghệ Đỉnh Cao",
+    title: "Hệ Thống Bán Lẻ Thiết Bị Công Nghệ",
     description: "Trải nghiệm Laptop, Smartphone và Phụ kiện cao cấp với chính sách bảo hành chính hãng toàn diện, hỗ trợ trả góp 0% lãi suất.",
     ctaText: "Khám phá ngay",
     hideTextOverlay: false,
@@ -70,18 +70,18 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     tag: "ĐẶC QUYỀN MUA SẮM",
     tagColor: "#cb1c22",
     subtitle: "Giao hàng hỏa tốc 2H • Miễn phí vận chuyển toàn quốc",
-    title: "Ưu Đãi Độc Quyền & Trợ Giá Lên Đời Đến 3 Triệu",
+    title: "Ưu Đãi Độc Quyền",
     description: "Định giá máy cũ nhanh chóng qua hệ thống chuẩn xác, hỗ trợ chuyển đổi dữ liệu và trợ giá trực tiếp khi nâng cấp thiết bị mới.",
     ctaText: "Xem sản phẩm",
     hideTextOverlay: false,
   },
   {
     id: 3,
-    image: "/banners/banner-3.jpg",
+    image: "/banners/banner-4.jpg",
     fallbackImage: "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=1600&auto=format&fit=crop&q=80",
-    tag: "DỊCH VỤ 5 SAO",
+    tag: "DỊCH VỤ",
     tagColor: "#cb1c22",
-    subtitle: "Hỗ trợ kỹ thuật 24/7 • Vệ sinh & Cài đặt máy trọn đời",
+    subtitle: "Hỗ trợ kỹ thuật 24/7",
     title: "An Tâm Tuyệt Đối Với Chế Độ Hậu Mãi Chu Đáo",
     description: "Đội ngũ chuyên viên kỹ thuật chuyên nghiệp luôn sẵn sàng hỗ trợ khách hàng từ bảo dưỡng định kỳ đến xử lý sự cố từ xa.",
     ctaText: "Mua sắm ngay",
@@ -835,7 +835,7 @@ const HomePage: React.FC = () => {
       )}
 
       {/* 5. STORE VALUES / BRAND PROMISES (CHUẨN TÔNG ĐỎ XÌMISTORE & SURFACE #FEF2F2) */}
-      <div
+      {/* <div
         style={{
           marginTop: 40,
           background: "#ffffff",
@@ -959,7 +959,7 @@ const HomePage: React.FC = () => {
             </Space>
           </Col>
         </Row>
-      </div>
+      </div> */}
     </div>
   );
 };

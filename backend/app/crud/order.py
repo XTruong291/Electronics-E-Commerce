@@ -135,12 +135,14 @@ def list_admin_orders(
                     Order.id == int(search.strip()),
                     Order.recipient_phone.ilike(s),
                     Order.recipient_name.ilike(s),
+                    Order.items.any(OrderItem.product_name.ilike(s)),
                 )
             )
         else:
             query = query.filter(
                 or_(
                     Order.recipient_name.ilike(s),
+                    Order.items.any(OrderItem.product_name.ilike(s)),
                     Order.recipient_phone.ilike(s),
                     Order.shipping_address.ilike(s),
                 )
