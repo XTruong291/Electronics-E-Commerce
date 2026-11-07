@@ -1358,6 +1358,27 @@ def seed_products(db: Session, category_map: dict) -> None:
     db.commit()
 
 
+def sync_product_views(db: Session) -> None:
+    """Synchronize each product's view_count strictly with genuine ProductView log entries.
+    Does NOT fabricate any artificial view data.
+    """
+    from sqlalchemy import func
+    from app.models.product import ProductView
+
+    products = db.query(Product).all()
+    for p in products:
+        actual_views = (
+            db.query(func.count(ProductView.id))
+            .filter(ProductView.product_id == p.id)
+            .scalar()
+            or 0
+        )
+        p.view_count = actual_views
+
+    db.commit()
+    print(f"[Analytics] Synchronized view_count for {len(products)} products with genuine ProductView records.")
+
+
 def main() -> None:
     db = SessionLocal()
     try:
@@ -1369,6 +1390,9 @@ def main() -> None:
 
         print("\n=== 3. Seeding Products ===")
         seed_products(db, category_map)
+
+        print("\n=== 4. Syncing Genuine Product Views ===")
+        sync_product_views(db)
 
         print("\n🎉 Seed completed successfully!")
     finally:

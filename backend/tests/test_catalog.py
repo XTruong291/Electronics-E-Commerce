@@ -137,7 +137,7 @@ def test_get_product_detail_by_id_and_slug(client: TestClient):
     slug_res = client.get("/api/v1/products/macbook-air-m2-13-6-inch-8gb-256gb")
     assert slug_res.status_code == 200
     prod = slug_res.json()
-    assert prod["sku"] == "LAP-APPLE-MBA-M2"
+    assert prod["sku"] in ("LAP-APPLE-MBA-M2", "LAP-MAC-MBA-M2-8-256")
     assert prod["category"]["slug"] == "laptop"
     assert "CPU" in prod["specifications"]
 

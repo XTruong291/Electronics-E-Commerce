@@ -1,13 +1,19 @@
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 from fastapi import HTTPException, status
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.utils import generate_slug
 from app.models.category import Category
-from app.models.order import OrderItem
-from app.models.product import Product
-from app.schemas.product import ProductCreate, ProductUpdate
+from app.models.order import Order, OrderItem, OrderStatus
+from app.models.product import Product, ProductView
+from app.schemas.product import (
+    BehaviorAnalyticsSummaryResponse,
+    ProductAnalyticsItem,
+    ProductCreate,
+    ProductUpdate,
+)
 
 
 def get_product_by_id(db: Session, product_id: int) -> Optional[Product]:
@@ -122,6 +128,8 @@ def list_products(
         query = query.order_by(Product.price.desc())
     elif sort_by == "name_asc":
         query = query.order_by(Product.name.asc())
+    elif sort_by == "views_desc":
+        query = query.order_by(Product.view_count.desc())
     else:  # default 'latest'
         query = query.order_by(Product.id.desc())
 
@@ -258,4 +266,175 @@ def delete_product(db: Session, product: Product) -> None:
 
     db.delete(product)
     db.commit()
+
+
+def increment_product_view(
+    db: Session,
+    product: Product,
+    user_id: Optional[int] = None,
+) -> int:
+    product.view_count = (product.view_count or 0) + 1
+    view_entry = ProductView(
+        product_id=product.id,
+        user_id=user_id,
+    )
+    db.add(view_entry)
+    db.commit()
+    db.refresh(product)
+    return product.view_count
+
+
+def get_product_behavior_analytics(
+    db: Session,
+    days: Optional[int] = None,
+    min_views: int = 5,
+    max_conversion_rate: float = 10.0,
+    limit: int = 10,
+) -> BehaviorAnalyticsSummaryResponse:
+    since_date = None
+    if days is not None and days > 0:
+        since_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # 1. Fetch all products with category
+    products = db.query(Product).options(joinedload(Product.category)).all()
+    if not products:
+        return BehaviorAnalyticsSummaryResponse(
+            total_products=0,
+            total_views=0,
+            total_orders_with_items=0,
+            total_units_sold=0,
+            overall_conversion_rate=0.0,
+            high_view_low_purchase_items=[],
+            top_viewed_items=[],
+            top_converted_items=[],
+        )
+
+    # 2. Query views per product
+    views_map: dict[int, int] = {}
+    if since_date is not None:
+        view_counts = (
+            db.query(ProductView.product_id, func.count(ProductView.id))
+            .filter(ProductView.viewed_at >= since_date)
+            .group_by(ProductView.product_id)
+            .all()
+        )
+        for pid, cnt in view_counts:
+            views_map[pid] = cnt
+    else:
+        for p in products:
+            views_map[p.id] = p.view_count or 0
+
+    # 3. Query order purchases per product (status != CANCELLED)
+    order_query = (
+        db.query(
+            OrderItem.product_id,
+            func.count(func.distinct(Order.id)).label("order_count"),
+            func.coalesce(func.sum(OrderItem.quantity), 0).label("units_sold"),
+            func.coalesce(func.sum(OrderItem.unit_price * OrderItem.quantity), 0).label("revenue"),
+        )
+        .join(Order, Order.id == OrderItem.order_id)
+        .filter(Order.status != OrderStatus.CANCELLED)
+    )
+    if since_date is not None:
+        order_query = order_query.filter(Order.created_at >= since_date)
+    order_stats = order_query.group_by(OrderItem.product_id).all()
+
+    orders_map: dict[int, dict] = {}
+    for pid, ord_cnt, units, rev in order_stats:
+        orders_map[pid] = {
+            "order_count": int(ord_cnt or 0),
+            "units_sold": int(units or 0),
+            "revenue": int(rev or 0),
+        }
+
+    # 4. Build items list
+    items: List[ProductAnalyticsItem] = []
+    total_views = 0
+    total_units_sold = 0
+    distinct_order_ids_query = (
+        db.query(func.count(func.distinct(Order.id)))
+        .join(OrderItem, OrderItem.order_id == Order.id)
+        .filter(Order.status != OrderStatus.CANCELLED)
+    )
+    if since_date is not None:
+        distinct_order_ids_query = distinct_order_ids_query.filter(Order.created_at >= since_date)
+    total_orders_with_items = distinct_order_ids_query.scalar() or 0
+
+    for p in products:
+        v_count = views_map.get(p.id, 0)
+        total_views += v_count
+
+        ord_info = orders_map.get(p.id, {"order_count": 0, "units_sold": 0, "revenue": 0})
+        o_count = ord_info["order_count"]
+        u_sold = ord_info["units_sold"]
+        rev = ord_info["revenue"]
+        total_units_sold += u_sold
+
+        if v_count > 0:
+            cr = round(min(100.0, (o_count / v_count) * 100), 2)
+        else:
+            cr = 0.0
+
+        hint = None
+        if v_count >= min_views and cr <= max_conversion_rate:
+            if p.stock <= 0:
+                hint = "Hết hàng tồn kho"
+            elif not p.sale_price or p.sale_price >= p.price:
+                hint = "Chưa có giá khuyến mãi"
+            else:
+                hint = "Cần tối ưu giá / mô tả"
+
+        category_name = p.category.name if p.category else None
+        item = ProductAnalyticsItem(
+            id=p.id,
+            name=p.name,
+            slug=p.slug,
+            sku=p.sku,
+            brand=p.brand,
+            category_name=category_name,
+            price=p.price,
+            sale_price=p.sale_price,
+            stock=p.stock,
+            thumbnail_url=p.thumbnail_url,
+            is_active=p.is_active,
+            view_count=v_count,
+            order_count=o_count,
+            units_sold=u_sold,
+            revenue=rev,
+            conversion_rate=cr,
+            diagnostic_hint=hint,
+        )
+        items.append(item)
+
+    overall_conversion_rate = 0.0
+    if total_views > 0:
+        overall_conversion_rate = round(min(100.0, (total_orders_with_items / total_views) * 100), 2)
+
+    # 5. Extract segments
+    high_view_low_purchase_candidates = [
+        it for it in items
+        if it.view_count >= min_views and it.conversion_rate <= max_conversion_rate
+    ]
+    high_view_low_purchase_candidates.sort(
+        key=lambda x: (-x.view_count, x.conversion_rate, x.units_sold)
+    )
+    high_view_low_purchase_items = high_view_low_purchase_candidates[:limit]
+
+    top_viewed_candidates = sorted(items, key=lambda x: -x.view_count)
+    top_viewed_items = top_viewed_candidates[:limit]
+
+    top_converted_candidates = [it for it in items if it.view_count >= 1]
+    top_converted_candidates.sort(key=lambda x: (-x.conversion_rate, -x.units_sold, -x.view_count))
+    top_converted_items = top_converted_candidates[:limit]
+
+    return BehaviorAnalyticsSummaryResponse(
+        total_products=len(products),
+        total_views=total_views,
+        total_orders_with_items=total_orders_with_items,
+        total_units_sold=total_units_sold,
+        overall_conversion_rate=overall_conversion_rate,
+        high_view_low_purchase_items=high_view_low_purchase_items,
+        top_viewed_items=top_viewed_items,
+        top_converted_items=top_converted_items,
+    )
 

@@ -36,6 +36,7 @@ export interface Product {
   images: string[];
   specifications: Record<string, string | number | boolean>;
   description?: string | null;
+  view_count?: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -101,5 +102,50 @@ export interface UploadImageResponse {
 
 export interface CommonMessageResponse {
   message: string;
+}
+
+export interface RecordViewResponse {
+  message: string;
+  product_id: number;
+  slug: string;
+  view_count: number;
+}
+
+export interface ProductAnalyticsItem {
+  id: number;
+  name: string;
+  slug: string;
+  sku: string;
+  brand: string;
+  category_name?: string | null;
+  price: number;
+  sale_price?: number | null;
+  stock: number;
+  thumbnail_url?: string | null;
+  is_active: boolean;
+  view_count: number;
+  order_count: number;
+  units_sold: number;
+  revenue: number;
+  conversion_rate: number;
+  diagnostic_hint?: string | null;
+}
+
+export interface BehaviorAnalyticsSummaryResponse {
+  total_products: number;
+  total_views: number;
+  total_orders_with_items: number;
+  total_units_sold: number;
+  overall_conversion_rate: number;
+  high_view_low_purchase_items: ProductAnalyticsItem[];
+  top_viewed_items: ProductAnalyticsItem[];
+  top_converted_items: ProductAnalyticsItem[];
+}
+
+export interface BehaviorAnalyticsParams {
+  days?: number;
+  min_views?: number;
+  max_conversion_rate?: number;
+  limit?: number;
 }
 

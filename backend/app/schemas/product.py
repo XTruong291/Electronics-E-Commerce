@@ -55,6 +55,7 @@ class ProductResponse(BaseModel):
     images: List[str]
     specifications: Dict[str, Any]
     description: Optional[str] = None
+    view_count: int = 0
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -68,4 +69,35 @@ class ProductListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class ProductAnalyticsItem(BaseModel):
+    id: int
+    name: str
+    slug: str
+    sku: str
+    brand: str
+    category_name: Optional[str] = None
+    price: int
+    sale_price: Optional[int] = None
+    stock: int
+    thumbnail_url: Optional[str] = None
+    is_active: bool
+    view_count: int
+    order_count: int
+    units_sold: int
+    revenue: int
+    conversion_rate: float
+    diagnostic_hint: Optional[str] = None
+
+
+class BehaviorAnalyticsSummaryResponse(BaseModel):
+    total_products: int
+    total_views: int
+    total_orders_with_items: int
+    total_units_sold: int
+    overall_conversion_rate: float
+    high_view_low_purchase_items: List[ProductAnalyticsItem]
+    top_viewed_items: List[ProductAnalyticsItem]
+    top_converted_items: List[ProductAnalyticsItem]
 

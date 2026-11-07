@@ -1,5 +1,7 @@
 import axiosClient from "./axiosClient";
 import type {
+  BehaviorAnalyticsParams,
+  BehaviorAnalyticsSummaryResponse,
   Category,
   CategoryCreatePayload,
   CategoryUpdatePayload,
@@ -9,6 +11,7 @@ import type {
   ProductFilterParams,
   ProductListResponse,
   ProductUpdatePayload,
+  RecordViewResponse,
   UploadImageResponse,
 } from "../types/catalog";
 
@@ -100,6 +103,36 @@ export const deleteProduct = async (
   return (await axiosClient.delete(
     `/products/${id}`
   )) as unknown as CommonMessageResponse;
+};
+
+export const recordProductView = async (
+  idOrSlug: string | number
+): Promise<RecordViewResponse> => {
+  return (await axiosClient.post(
+    `/products/${idOrSlug}/view`
+  )) as unknown as RecordViewResponse;
+};
+
+// ================= ANALYTICS API =================
+
+export const getBehaviorAnalytics = async (
+  params?: BehaviorAnalyticsParams
+): Promise<BehaviorAnalyticsSummaryResponse> => {
+  return (await axiosClient.get("/admin/analytics/behavior", {
+    params,
+  })) as unknown as BehaviorAnalyticsSummaryResponse;
+};
+
+export const syncProductViews = async (): Promise<{
+  message: string;
+  updated_products: number;
+}> => {
+  return (await axiosClient.post(
+    "/admin/analytics/sync-views"
+  )) as unknown as {
+    message: string;
+    updated_products: number;
+  };
 };
 
 // ================= UPLOAD MEDIA API =================

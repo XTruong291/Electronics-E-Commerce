@@ -2,12 +2,13 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_roles
+from app.api.deps import get_optional_current_user, require_roles
 from app.crud.product import (
     create_product,
     delete_product,
     get_product_by_id,
     get_product_by_id_or_slug,
+    increment_product_view,
     list_products,
     update_product,
 )
@@ -79,6 +80,29 @@ def get_product_detail(
             detail="Sản phẩm không tồn tại",
         )
     return ProductResponse.model_validate(product)
+
+
+@router.post("/{id_or_slug}/view")
+def record_product_view(
+    id_or_slug: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
+    """Ghi nhận lượt xem sản phẩm (Public, gắn user_id nếu có phiên đăng nhập)."""
+    product = get_product_by_id_or_slug(db, id_or_slug)
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sản phẩm không tồn tại",
+        )
+    user_id = current_user.id if current_user else None
+    new_views = increment_product_view(db, product, user_id=user_id)
+    return {
+        "message": "Đã ghi nhận lượt xem",
+        "product_id": product.id,
+        "slug": product.slug,
+        "view_count": new_views,
+    }
 
 
 @router.post(

@@ -22,6 +22,7 @@ import {
   SyncOutlined,
   FireFilled,
   ArrowRightOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCategories, getProducts } from "../../api/catalog.api";
@@ -650,11 +651,32 @@ const HomePage: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Brand Label */}
-                      <div style={{ marginBottom: 4 }}>
+                      {/* Brand Label & Views */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 4,
+                        }}
+                      >
                         <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 700, textTransform: "uppercase" }}>
                           {product.brand}
                         </span>
+                        {(product.view_count !== undefined && product.view_count > 0) ? (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: "#6b7280",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <EyeOutlined style={{ color: "#3b82f6" }} />
+                            {product.view_count.toLocaleString("vi-VN")}
+                          </span>
+                        ) : null}
                       </div>
 
                       {/* Product Title (2-line clamp) */}

@@ -10,6 +10,7 @@ from app.crud.order import (
     list_admin_orders,
     update_order_status as update_order_status_crud,
 )
+from app.crud.product import get_product_behavior_analytics
 from app.crud.user import (
     delete_user,
     get_user_by_id,
@@ -25,6 +26,7 @@ from app.schemas.order import (
     OrderResponse,
     OrderStatusUpdate,
 )
+from app.schemas.product import BehaviorAnalyticsSummaryResponse
 from app.schemas.user import (
     UserListResponse,
     UserRoleUpdate,
@@ -43,6 +45,54 @@ def admin_ping(
         "message": "pong",
         "email": current_user.email,
         "role": current_user.role.value,
+    }
+
+
+@router.get("/analytics/behavior", response_model=BehaviorAnalyticsSummaryResponse)
+def get_behavior_analytics(
+    days: Optional[int] = Query(None, ge=1, description="Số ngày gần nhất cần thống kê (None = toàn thời gian)"),
+    min_views: int = Query(5, ge=1, description="Lượt xem tối thiểu để lọc nhóm xem nhiều nhưng mua ít"),
+    max_conversion_rate: float = Query(10.0, ge=0.0, le=100.0, description="Tỉ lệ chuyển đổi tối đa (%) cho nhóm mua ít"),
+    limit: int = Query(10, ge=1, le=100, description="Số lượng sản phẩm mỗi nhóm danh sách"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.STAFF, UserRole.ADMIN])),
+):
+    """Báo cáo phân tích hành vi người dùng: Lượt click xem, tỉ lệ chuyển đổi, và danh sách sản phẩm xem nhiều mua ít."""
+    return get_product_behavior_analytics(
+        db=db,
+        days=days,
+        min_views=min_views,
+        max_conversion_rate=max_conversion_rate,
+        limit=limit,
+    )
+
+
+@router.post("/analytics/sync-views")
+def sync_product_views_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.STAFF, UserRole.ADMIN])),
+):
+    """Đồng bộ lại số lượng xem (view_count) của toàn bộ sản phẩm theo đúng dữ liệu thực tế từ bảng product_views."""
+    from sqlalchemy import func
+    from app.models.product import Product, ProductView
+
+    products = db.query(Product).all()
+    updated_count = 0
+    for p in products:
+        actual_views = (
+            db.query(func.count(ProductView.id))
+            .filter(ProductView.product_id == p.id)
+            .scalar()
+            or 0
+        )
+        if p.view_count != actual_views:
+            p.view_count = actual_views
+            updated_count += 1
+
+    db.commit()
+    return {
+        "message": f"Đã đồng bộ số lượng xem thực tế cho {len(products)} sản phẩm",
+        "updated_products": updated_count,
     }
 
 
