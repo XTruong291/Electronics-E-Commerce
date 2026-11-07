@@ -830,7 +830,7 @@ const DashboardPage: React.FC = () => {
             Bảng điều khiển Quản trị — XìMiStore
           </Title>
           <Paragraph type="secondary" style={{ margin: 0 }}>
-            Theo dõi tổng doanh thu, phễu hành vi người dùng và trợ lý chiến lược AI Gemini
+            Theo dõi tổng doanh thu, phễu hành vi người dùng và trợ lý chiến lược AI Ximi
           </Paragraph>
         </div>
         <Space size={12} wrap>
@@ -1095,7 +1095,7 @@ const DashboardPage: React.FC = () => {
           </Row>
         </Card>
 
-        {/* 4. GEMINI STORE COPILOT INTERACTIVE WORKSPACE */}
+        {/* 4. Ximi STORE COPILOT INTERACTIVE WORKSPACE */}
         <Card
           bordered={false}
           style={{
@@ -1138,11 +1138,11 @@ const DashboardPage: React.FC = () => {
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 18, fontWeight: 800, color: "#ffffff" }}>
-                    Gemini Store Copilot
+                    Ximi AI
                   </span>
                   {insights?.source === "gemini_ai" ? (
                     <Tag color="cyan" style={{ fontWeight: 700, borderRadius: 6 }}>
-                      <ThunderboltFilled /> Gemini 2.5 Flash
+                      <ThunderboltFilled /> 
                     </Tag>
                   ) : (
                     <Tag
@@ -1154,7 +1154,7 @@ const DashboardPage: React.FC = () => {
                         color: "#e2e8f0",
                       }}
                     >
-                      Phân tích Dự phòng Heuristic
+                      
                     </Tag>
                   )}
                 </div>
@@ -1514,7 +1514,7 @@ const DashboardPage: React.FC = () => {
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ fontWeight: 700, fontSize: 12, color: "#38bdf8" }}>
-                            Gemini Copilot
+                            Ximi AI
                           </span>
                           {msg.data_sources_used && msg.data_sources_used.length > 0 && (
                             <span style={{ display: "inline-flex", gap: 4 }}>
@@ -1564,7 +1564,7 @@ const DashboardPage: React.FC = () => {
                   }}
                 >
                   <Spin size="small" />
-                  <span>Gemini Copilot đang truy xuất & đối chiếu dữ liệu cửa hàng từ MySQL...</span>
+                  <span>Ximi AI đang truy xuất & đối chiếu dữ liệu cửa hàng từ MySQL...</span>
                 </div>
               )}
             </div>
