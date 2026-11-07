@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   ShopOutlined,
   ThunderboltFilled,
+  ReadOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
@@ -46,6 +47,11 @@ const AdminLayout: React.FC = () => {
       key: "/admin/categories",
       icon: <AppstoreOutlined />,
       label: "Danh mục",
+    },
+    {
+      key: "/admin/articles",
+      icon: <ReadOutlined />,
+      label: "Bài viết công nghệ",
     },
     {
       key: "/admin/users",

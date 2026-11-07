@@ -11,25 +11,24 @@ import {
   Spin,
   Empty,
   Carousel,
-  Space,
   Tooltip,
 } from "antd";
 import type { CarouselRef } from "antd/es/carousel";
 import {
   ShoppingCartOutlined,
-  SafetyCertificateOutlined,
-  RocketOutlined,
-  CustomerServiceOutlined,
-  SyncOutlined,
   FireFilled,
   ArrowRightOutlined,
   LeftOutlined,
   RightOutlined,
+  ThunderboltFilled,
+  EyeOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCategories, getProducts } from "../../api/catalog.api";
+import { getArticles } from "../../api/article.api";
 import { useCartStore } from "../../store/useCartStore";
 import type { Category, Product } from "../../types/catalog";
+import type { Article } from "../../types/article";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -98,6 +97,7 @@ const HomePage: React.FC = () => {
   // Data states
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [latestArticles, setLatestArticles] = useState<Article[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [failedBanners, setFailedBanners] = useState<Record<number, boolean>>({});
@@ -178,6 +178,18 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     fetchProductList();
   }, [fetchProductList]);
+
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const res = await getArticles({ page: 1, page_size: 4 });
+        setLatestArticles(res.items);
+      } catch (err) {
+        console.error("Lỗi tải bài viết trang chủ:", err);
+      }
+    };
+    fetchArticles();
+  }, []);
 
   // Danh sách thương hiệu khớp chuẩn 100% với các sản phẩm trong DB
   const popularBrands = [
@@ -831,6 +843,182 @@ const HomePage: React.FC = () => {
             showSizeChanger
             pageSizeOptions={["12", "24", "48"]}
           />
+        </div>
+      )}
+
+      {/* 5. TECH NEWS & FUTURE TRENDS SECTION */}
+      {latestArticles.length > 0 && (
+        <div style={{ marginTop: 52 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              marginBottom: 20,
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  color: "#cb1c22",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  marginBottom: 4,
+                }}
+              >
+                <ThunderboltFilled /> XìMi Tech Insights
+              </div>
+              <Title
+                level={3}
+                style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#111827" }}
+              >
+                Xu Hướng Công Nghệ & Thiết Bị Tương Lai
+              </Title>
+            </div>
+
+            <Button
+              type="link"
+              onClick={() => navigate("/news")}
+              style={{
+                color: "#cb1c22",
+                fontWeight: 600,
+                padding: 0,
+                fontSize: 14,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              Xem tất cả bài viết <ArrowRightOutlined />
+            </Button>
+          </div>
+
+          <Row gutter={[20, 20]}>
+            {latestArticles.map((art) => (
+              <Col xs={24} sm={12} lg={6} key={art.id}>
+                <Card
+                  hoverable
+                  bordered={false}
+                  onClick={() => navigate(`/news/${art.slug}`)}
+                  style={{
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.04)",
+                    border: "1px solid #e5e7eb",
+                    cursor: "pointer",
+                    transition: "all 0.25s ease",
+                  }}
+                  bodyStyle={{
+                    padding: 16,
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        marginBottom: 12,
+                        aspectRatio: "16/9",
+                        background: "#f3f4f6",
+                      }}
+                    >
+                      <img
+                        src={
+                          art.thumbnail_url ||
+                          "https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&q=80"
+                        }
+                        alt={art.title}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          transition: "transform 0.35s ease",
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: 8 }}>
+                      <Tag
+                        color="blue"
+                        style={{
+                          borderRadius: 6,
+                          fontWeight: 600,
+                          fontSize: 11,
+                          marginRight: 6,
+                        }}
+                      >
+                        {art.topic}
+                      </Tag>
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: "#111827",
+                        lineHeight: 1.4,
+                        marginBottom: 8,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {art.title}
+                    </div>
+
+                    <Paragraph
+                      type="secondary"
+                      style={{
+                        fontSize: 12,
+                        lineHeight: 1.5,
+                        margin: 0,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {art.summary}
+                    </Paragraph>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 14,
+                      paddingTop: 10,
+                      borderTop: "1px solid #f3f4f6",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: 11,
+                      color: "#9ca3af",
+                    }}
+                  >
+                    <span>{new Date(art.created_at).toLocaleDateString("vi-VN")}</span>
+                    <span>
+                      <EyeOutlined style={{ marginRight: 4 }} />
+                      {art.view_count} xem
+                    </span>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
         </div>
       )}
 

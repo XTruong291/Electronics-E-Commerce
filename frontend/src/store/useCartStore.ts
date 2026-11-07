@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { message } from "antd";
 import type { Product } from "../types/catalog";
+import { trackEvent } from "../utils/tracker";
 
 export interface CartItem {
   product: Product;
@@ -55,6 +56,17 @@ export const useCartStore = create<CartState>()(
           set({ items: [...items, { product, quantity: addQty }] });
           message.success(`Đã thêm "${product.name}" vào giỏ hàng.`);
         }
+
+        // Ghi nhận sự kiện ADD_TO_CART ngầm
+        trackEvent("ADD_TO_CART", {
+          product_id: product.id,
+          category_id: product.category_id,
+          metadata_json: {
+            brand: product.brand,
+            price: product.sale_price || product.price,
+            quantity,
+          },
+        });
       },
 
       removeItem: (productId: number) => {
@@ -62,6 +74,11 @@ export const useCartStore = create<CartState>()(
         const filtered = items.filter((i) => i.product.id !== productId);
         set({ items: filtered });
         message.info("Đã xóa sản phẩm khỏi giỏ hàng.");
+
+        // Ghi nhận sự kiện REMOVE_FROM_CART ngầm
+        trackEvent("REMOVE_FROM_CART", {
+          product_id: productId,
+        });
       },
 
       updateQuantity: (productId: number, quantity: number) => {

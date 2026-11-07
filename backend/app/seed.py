@@ -12,9 +12,16 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from sqlalchemy.orm import Session
 
+from datetime import datetime, timedelta, timezone
+import random
+import uuid
+
 from app.core.security import hash_password
 from app.database import SessionLocal
+from app.models.analytics import UserEvent
+from app.models.article import Article
 from app.models.category import Category
+from app.models.order import Order, OrderItem, OrderStatus
 from app.models.product import Product
 from app.models.user import User, UserRole
 
@@ -1313,6 +1320,7 @@ def seed_products(db: Session, category_map: dict) -> None:
         },
     ]
 
+    now = datetime.now(timezone.utc)
     for item in products_data:
         cat = category_map.get(item["category_slug"])
         if not cat:
@@ -1322,6 +1330,8 @@ def seed_products(db: Session, category_map: dict) -> None:
         prod = db.query(Product).filter(
             (Product.sku == item["sku"]) | (Product.slug == item["slug"])
         ).first()
+        created_time = now - timedelta(days=random.randint(35, 60), hours=random.randint(1, 23))
+
         if prod:
             print(f"[Product] '{item['name']}' ({item['sku']}) already exists. Updating.")
             prod.category_id = cat.id
@@ -1336,6 +1346,7 @@ def seed_products(db: Session, category_map: dict) -> None:
             prod.specifications = item["specifications"]
             prod.description = item["description"]
             prod.is_active = item["is_active"]
+            prod.created_at = created_time
         else:
             print(f"[Product] Creating product '{item['name']}' ({item['sku']})...")
             prod = Product(
@@ -1352,10 +1363,491 @@ def seed_products(db: Session, category_map: dict) -> None:
                 specifications=item["specifications"],
                 description=item["description"],
                 is_active=item["is_active"],
+                created_at=created_time,
             )
             db.add(prod)
 
     db.commit()
+
+    # Đảm bảo toàn bộ sản phẩm trong DB đều có created_at lùi 35-60 ngày trước
+    now_naive = now.replace(tzinfo=None)
+    all_db_prods = db.query(Product).all()
+    for p in all_db_prods:
+        p_created = p.created_at.replace(tzinfo=None) if p.created_at else None
+        if not p_created or (now_naive - p_created).days < 35:
+            p.created_at = now - timedelta(days=random.randint(35, 60), hours=random.randint(1, 23))
+    db.commit()
+    print(f"[Product] Backdated created_at to 35-60 days ago for {len(all_db_prods)} products.")
+
+
+def seed_articles(db: Session) -> None:
+    admin_user = (
+        db.query(User).filter(User.role == UserRole.ADMIN).first()
+    )
+    author_id = admin_user.id if admin_user else None
+
+    articles_data = [
+        {
+            "title": "Kỷ nguyên Laptop AI & NPU: Bộ não nhân tạo trên chip thế hệ mới",
+            "slug": "ky-nguyen-laptop-ai-va-npu-tren-chip-the-he-moi",
+            "topic": "AI & Robotics",
+            "summary": "Tìm hiểu kiến trúc NPU chuyên dụng trên các dòng chip Intel Core Ultra, AMD Ryzen AI và Apple Silicon, mở ra khả năng xử lý mô hình AI cục bộ không cần Internet.",
+            "thumbnail_url": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&auto=format&fit=crop&q=80",
+            "is_featured": True,
+            "is_published": True,
+            "view_count": 1420,
+            "content": """## 1. NPU là gì và tại sao CPU/GPU truyền thống là chưa đủ?
+Trong nhiều năm qua, CPU đảm nhiệm các tác vụ tính toán logic tuần tự, còn GPU gánh vác các phép toán song song khối lượng lớn như đồ họa và render 3D. Tuy nhiên, khi các mô hình học máy (Machine Learning) và mạng nơ-ron nhân tạo bùng nổ, khối lượng tính toán ma trận với độ chính xác số thực thấp (FP16, INT8) tăng vọt.
+
+Nếu tiếp tục sử dụng GPU cho các tác vụ AI nền liên tục như xóa phông webcam, khử nhiễu micro hay dịch thuật trực tiếp, pin của máy tính xách tay sẽ nhanh chóng cạn kiệt chỉ sau 2-3 giờ. Đây chính là lý do **NPU (Neural Processing Unit)** ra đời: một bộ xử lý chuyên biệt tối ưu hóa riêng cho các ma trận nơ-ron với mức tiêu thụ điện năng chỉ bằng 1/5 so với GPU.
+
+## 2. Các ứng dụng thực tế của AI trên Laptop hiện đại
+Các thế hệ Laptop trang bị chip xử lý thế hệ mới mang lại những khả năng trước đây chỉ có trên siêu máy tính máy chủ:
+- **Xử lý mô hình ngôn ngữ lớn cục bộ (Local LLM):** Chạy trực tiếp các mô hình AI mã nguồn mở để tóm tắt tài liệu, viết code và phân tích dữ liệu nhạy cảm mà không cần truyền dữ liệu lên đám mây.
+- **Tính năng Studio Effects thông minh:** Tự động theo dõi chuyển động mắt (Eye Contact), làm mờ hậu cảnh chính xác từng sợi tóc và loại bỏ tạp âm phòng ồn thời gian thực.
+- **Tối ưu hóa năng lượng thích ứng:** Hệ thống AI tự học thói quen người dùng để phân bổ xung nhịp CPU và độ sáng màn hình, kéo dài thời lượng pin vượt mốc 18 tiếng liên tục.
+
+## 3. Lời khuyên chọn mua thiết bị đón đầu tương lai
+Nếu bạn đang tìm kiếm một chiếc máy tính xách tay để sử dụng ổn định trong 4-5 năm tới, hãy ưu tiên các dòng chip hỗ trợ tối thiểu **40 TOPS (Trillion Operations Per Second)** trên NPU. Đây là tiêu chuẩn vàng để hệ điều hành kích hoạt toàn bộ các tính năng AI thế hệ mới nhất.""",
+        },
+        {
+            "title": "Tương lai màn hình gập, cuộn và tấm nền OLED trong suốt trên thiết bị cá nhân",
+            "slug": "tuong-lai-man-hinh-gap-cuon-va-oled-trong-suot",
+            "topic": "Thiết bị tương lai",
+            "summary": "Khám phá các đột phá công nghệ bản lề giọt nước, tấm nền dẻo không nếp gấp và màn hình OLED trong suốt đang định hình lại thiết kế smartphone, laptop và kính thông minh.",
+            "thumbnail_url": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=80",
+            "is_featured": True,
+            "is_published": True,
+            "view_count": 980,
+            "content": """## 1. Sự trưởng thành của công nghệ bản lề và vật liệu siêu dẻo
+Sau nhiều thế hệ cải tiến, các thiết bị màn hình gập đã vượt qua định kiến "mong manh dễ vỡ". Thế hệ bản lề giọt nước cơ học mới nhất không chỉ cho phép gập khít hoàn toàn mà còn phân tán lực căng đều trên bề mặt kính siêu mỏng UTG (Ultra Thin Glass), giúp loại bỏ gần như 100% nếp gấp mắt thường nhìn thấy.
+
+Khả năng kháng nước và bụi chuẩn IP48/IP68 giờ đây đã trở thành tiêu chuẩn trên các thiết bị cao cấp, biến điện thoại gập từ một món đồ công nghệ xa xỉ thành thiết bị làm việc bền bỉ hàng ngày.
+
+## 2. Bước nhảy vọt tiếp theo: Màn hình cuộn và trượt theo nhu cầu
+Không dừng lại ở việc gập đôi, các phòng thí nghiệm hàng đầu đang hoàn thiện màn hình cuộn tự động (Rollable OLED):
+- **Biến hóa kích thước linh hoạt:** Một chiếc điện thoại 6.5 inch có thể mở rộng cơ học sang 7.4 inch chỉ bằng một cú chạm nhẹ, mang lại không gian hiển thị chuẩn tablet mà không tăng độ dày thân máy.
+- **Laptop 2 màn hình cảm ứng toàn diện:** Loại bỏ bàn phím vật lý truyền thống để nhường chỗ cho diện tích hiển thị kép, hỗ trợ làm việc đa nhiệm và ghi chú bằng bút cảm ứng áp lực cao.
+
+## 3. Ứng dụng thực tế của tấm nền OLED trong suốt
+Công nghệ OLED trong suốt cho phép ánh sáng xuyên qua các pixel khi tắt, mở ra trải nghiệm hiển thị tương tác trực tiếp lên cửa kính ô tô, tủ trưng bày sản phẩm cao cấp và kính đeo thực tế tăng cường (AR) siêu nhẹ trong thập kỷ tới.""",
+        },
+        {
+            "title": "Cuộc đua bán dẫn tiến trình 2nm và tương lai chip di động thế hệ mới",
+            "slug": "cuoc-dua-ban-dan-2nm-va-tuong-lai-chip-di-dong",
+            "topic": "Bán dẫn & Phần cứng",
+            "summary": "TSMC, Samsung và Intel đang tăng tốc thương mại hóa quy trình đúc chip 2nm sử dụng bóng bán dẫn GAAFET, mang lại bước nhảy vọt 30% về hiệu năng và tiết kiệm năng lượng.",
+            "thumbnail_url": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&auto=format&fit=crop&q=80",
+            "is_featured": False,
+            "is_published": True,
+            "view_count": 750,
+            "content": """## 1. Rào cản vật lý và sự chuyển đổi từ FinFET sang GAAFET
+Khi kích thước cổng bóng bán dẫn tiến dần về cấp độ nguyên tử, cấu trúc FinFET 3D truyền thống bắt đầu gặp hiện tượng rò rỉ dòng điện lượng tử và sinh nhiệt quá mức. Để vượt qua giới hạn này, ngành bán dẫn toàn cầu đang chuyển dịch sang kiến trúc **GAAFET (Gate-All-Around FET)**.
+
+Với GAAFET, các ống nano hoặc tấm nano (Nanosheets) được bao bọc 360 độ bởi cực cổng, cho phép kiểm soát dòng điện tuyệt đối, giảm điện áp hoạt động và tăng đáng kể mật độ bóng bán dẫn trên cùng một diện tích chip silicon.
+
+## 2. Lợi ích trực tiếp đối với người dùng thiết bị điện tử
+- **Hiệu năng nhảy vọt:** Tốc độ xung nhịp CPU/GPU tăng từ 15-20% trong khi mức tiêu thụ điện năng giảm đến 30%.
+- **Nhiệt độ mát mẻ:** Smartphone siêu mỏng có thể chơi game đồ họa đỉnh cao liên tục mà không gặp hiện tượng giảm sáng hay tụt khung hình do quá nhiệt.
+- **Mở rộng bộ nhớ đệm Cache:** Cho phép tích hợp bộ nhớ đệm 3D V-Cache dung lượng lớn trực tiếp lên bề mặt chip, rút ngắn thời gian nạp ứng dụng xuống gần như tức thì.
+
+## 3. Tác động địa chính trị và chuỗi cung ứng công nghệ
+Tiến trình 2nm không chỉ là cuộc đua công nghệ mà còn là bài toán đầu tư hàng trăm tỷ USD vào máy quang khắc tia siêu cực tím High-NA EUV, định hình lại thế cân bằng công nghệ toàn cầu trong 10 năm tiếp theo.""",
+        },
+        {
+            "title": "Thiết bị đeo thông minh tích hợp AI Agent: Khi nhẫn và kính AR thay thế smartphone",
+            "slug": "thiet-bi-deo-thong-minh-tich-hop-ai-agent-tuong-lai",
+            "topic": "Thiết bị tương lai",
+            "summary": "Sự kết hợp giữa cảm biến sinh trắc học siêu nhỏ và trợ lý AI Agent cá nhân hóa đang biến Smart Ring và kính thực tế tăng cường AR thành giao diện giao tiếp chính của con người.",
+            "thumbnail_url": "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1200&auto=format&fit=crop&q=80",
+            "is_featured": False,
+            "is_published": True,
+            "view_count": 620,
+            "content": """## 1. Xu hướng tối giản: Từ đồng hồ thông minh sang nhẫn thông minh (Smart Ring)
+Mặc dù smartwatch đã rất phổ biến, nhiều người dùng vẫn cảm thấy bất tiện khi đeo đồng hồ đi ngủ hoặc trong lúc tập luyện thể thao cường độ cao. **Nhẫn thông minh (Smart Ring)** giải quyết hoàn hảo vấn đề này nhờ thiết kế titan siêu nhẹ và thời lượng pin kéo dài từ 7 đến 10 ngày.
+
+Nhờ tiếp xúc trực tiếp và liên tục với các mao mạch ngón tay, nhẫn thông minh cung cấp dữ liệu đo nhịp tim, nồng độ oxy trong máu, nhiệt độ bề mặt da và chu kỳ giấc ngủ với độ chuẩn xác y tế vượt trội so với cổ tay.
+
+## 2. Kính AR thông minh tích hợp camera AI và âm thanh vòm
+Thế hệ kính mắt thông minh mới nhất đã đạt trọng lượng dưới 50 gram, ngoại hình hoàn toàn giống một chiếc kính thời trang thông thường nhưng chứa đựng công nghệ tương lai:
+- **Thấu kính Micro-LED trong suốt:** Hiển thị chỉ đường điều hướng theo thời gian thực và phụ đề dịch thuật trực tiếp khi trò chuyện với người nước ngoài.
+- **Tương tác rảnh tay qua AI Agent:** Nhận diện đồ vật bạn đang nhìn và trả lời mọi câu hỏi về thông số kỹ thuật, giá bán hay công thức nấu ăn mà không cần rút điện thoại ra khỏi túi.
+
+## 3. Tương lai không màn hình (Screenless Future)
+Khi các thiết bị đeo có thể lắng nghe giọng nói thì thầm và phản hồi tức thì qua tai nghe truyền âm qua xương, chúng ta đang bước vào kỷ nguyên giao tiếp tự nhiên nơi công nghệ ẩn mình vào đời sống.""",
+        },
+        {
+            "title": "Xu hướng bàn phím cơ từ tính Hall Effect & Switch quang học: Chuẩn mực gaming không độ trễ",
+            "slug": "xu-huong-ban-phim-co-tu-tinh-hall-effect-khong-do-tre",
+            "topic": "Đánh giá & Xu hướng",
+            "summary": "Công nghệ Rapid Trigger và cảm biến từ trường Hall Effect cho phép tùy biến điểm nhận phím đến từng 0.1mm, tạo nên cơn sốt trong cộng đồng game thủ eSports và lập trình viên.",
+            "thumbnail_url": "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=1200&auto=format&fit=crop&q=80",
+            "is_featured": False,
+            "is_published": True,
+            "view_count": 890,
+            "content": """## 1. Nguyên lý hoạt động của Switch từ tính (Magnetic Hall Effect)
+Khác với switch cơ học truyền thống dựa trên 2 lá đồng tiếp xúc vật lý để đóng mạch điện, **Switch Hall Effect** sử dụng một nam châm vĩnh cửu gắn dưới chân stem và một cảm biến đo cường độ từ trường đặt trên bo mạch PCB.
+
+Khi bạn nhấn phím, cảm biến liên tục ghi nhận sự thay đổi của từ trường theo thời gian thực với độ phân giải siêu mịn lên đến 0.02mm, hoàn toàn không có ma sát kim loại và loại bỏ triệt để hiện tượng dội phím (debounce delay).
+
+## 2. Tính năng Rapid Trigger: Vũ khí tối thượng của game thủ
+Rapid Trigger cho phép phím kích hoạt lại ngay lập tức khi bạn nhấc ngón tay lên chỉ 0.1mm mà không cần chờ phím hồi về điểm reset ban đầu:
+- **Phản xạ tức thì:** Giúp game thủ các tựa game bắn súng góc nhìn thứ nhất (FPS) thực hiện kỹ thuật dừng di chuyển và ngắm bắn (Counter-Strafe) chuẩn xác tuyệt đối.
+- **Tùy biến hành trình bấm linh hoạt:** Bạn có thể thiết lập phím di chuyển nhận phím cực nông (0.2mm) để phản ứng nhanh, trong khi phím chiêu cuối (Ultimate) nhận sâu (3.0mm) để tránh nhấn nhầm.
+
+## 3. Độ bền vượt trội và cảm giác gõ mượt mà
+Do không có tiếp điểm kim loại bị oxy hóa hay hao mòn theo thời gian, tuổi thọ của switch từ tính đạt trên 100 triệu lần nhấn. Cảm giác trượt của nam châm kết hợp foam tiêu âm hiện đại mang lại âm thanh gõ trầm đục (Thocky) rất thỏa mãn.""",
+        },
+        {
+            "title": "Robot gia đình thông minh tích hợp Vision-Language Model: Trợ lý bước ra đời thực",
+            "slug": "robot-gia-dinh-thong-minh-tich-hop-vlm-tro-ly-doi-thuc",
+            "topic": "AI & Robotics",
+            "summary": "Các mô hình đa phương thức VLM đang được nạp trực tiếp vào robot quản gia, cho phép nhận diện đồ vật, tương tác bằng giọng nói tự nhiên và tự học làm việc nhà theo ngữ cảnh.",
+            "thumbnail_url": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&auto=format&fit=crop&q=80",
+            "is_featured": False,
+            "is_published": True,
+            "view_count": 510,
+            "content": """## 1. Khi trí tuệ nhân tạo có thêm cơ thể vật lý (Embodied AI)
+Nhiều năm qua, robot hút bụi và tay máy tự động chỉ hoạt động theo các lộ trình được lập trình cứng. Tuy nhiên, sự xuất hiện của **Vision-Language-Action Models (VLA)** đã tạo ra bước ngoặt: robot giờ đây có thể "nhìn thấy" thế giới xung quanh qua camera 3D LiDAR, "hiểu" câu lệnh bằng ngôn ngữ tự nhiên và chuyển hóa thành hành động phối hợp cơ bắp.
+
+Khi bạn nói *"Hãy dọn sạch đĩa hoa quả trên bàn phòng khách"*, robot sẽ tự động phân loại rác hữu cơ, mang đĩa vào bồn rửa và lau sạch mặt bàn mà không cần hướng dẫn từng bước nhỏ.
+
+## 2. Tiêu chuẩn kết nối Matter và Smart Home toàn diện
+Robot quản gia tương lai đóng vai trò là hub trung tâm kết nối toàn bộ thiết bị gia dụng trong gia đình:
+- Tự động điều chỉnh nhiệt độ điều hòa và độ ẩm theo thân nhiệt của từng thành viên.
+- Nhận diện khuôn mặt người lạ và gửi cảnh báo video độ phân giải cao tới điện thoại gia chủ.
+- Chăm sóc và theo dõi sức khỏe người cao tuổi, tự động gọi cấp cứu khi phát hiện té ngã.
+
+## 3. Thách thức về an toàn và bảo mật dữ liệu gia đình
+Việc đưa một cỗ máy có camera và micro di chuyển khắp không gian riêng tư đặt ra yêu cầu tuyệt đối về mã hóa dữ liệu cục bộ on-device, đảm bảo thông tin cá nhân không bao giờ bị rò rỉ ra ngoài.""",
+        },
+        {
+            "title": "Kỷ nguyên kết nối Wi-Fi 7 và Mạng 6G: Băng thông cực đại và độ trễ dưới 1 mili-giây",
+            "slug": "ky-nguyen-ket-noi-wifi-7-va-mang-6g-do-tre-sieu-thap",
+            "topic": "Bán dẫn & Phần cứng",
+            "summary": "Băng tần siêu rộng 320MHz kết hợp công nghệ Multi-Link Operation trên Wi-Fi 7 mang lại tốc độ truyền dữ liệu không dây nhanh hơn cả cáp mạng Ethernet truyền thống.",
+            "thumbnail_url": "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1200&auto=format&fit=crop&q=80",
+            "is_featured": False,
+            "is_published": True,
+            "view_count": 430,
+            "content": """## 1. Wi-Fi 7 (802.11be): Cột mốc phá vỡ giới hạn tốc độ không dây
+Với độ rộng kênh lên đến **320MHz** trên băng tần 6GHz và kỹ thuật điều chế **4096-QAM**, Wi-Fi 7 mang lại tốc độ lý thuyết lên tới 46 Gbps, gấp 4.8 lần so với chuẩn Wi-Fi 6 trước đó.
+
+Điểm đắt giá nhất của Wi-Fi 7 chính là công nghệ **Multi-Link Operation (MLO)**: cho phép thiết bị truyền và nhận dữ liệu đồng thời trên nhiều băng tần (2.4GHz, 5GHz và 6GHz). Nếu một băng tần bị nhiễu do tường chắn hoặc thiết bị khác, dữ liệu sẽ tự động chuyển hướng tức thì mà không làm gián đoạn cuộc gọi video hay trận đấu game trực tuyến.
+
+## 2. Hướng tới mạng viễn thông thế hệ thứ 6 (6G)
+Trong khi mạng 5G đang tiếp tục phủ sóng, các tập đoàn viễn thông đã bước vào thử nghiệm mạng 6G với dải tần Terahertz (THz):
+- **Độ trễ sub-millisecond (< 0.1ms):** Cho phép truyền tải hình ảnh ba chiều Hologram chân thực như đời sống và điều khiển phẫu thuật y tế từ xa ở khoảng cách hàng nghìn kilomet.
+- **Hội tụ vệ tinh không gian thấp (LEO):** Kết nối Internet liên tục trên toàn cầu, từ giữa đại dương đến đỉnh núi cao mà không còn bất kỳ vùng lõm sóng nào.
+
+## 3. Thiết bị đầu cuối tương thích sẵn sàng
+Các mẫu smartphone, laptop và router cao cấp ra mắt trong năm 2026 đều đã tích hợp sẵn module Wi-Fi 7, giúp người dùng tận hưởng trọn vẹn kết nối mượt mà nhất.""",
+        },
+        {
+            "title": "Công nghệ pin thể rắn Silicon-Carbon: Giải phóng thời lượng pin trên thiết bị di động",
+            "slug": "cong-nghe-pin-the-ran-silicon-carbon-tren-thiet-bi-di-dong",
+            "topic": "Thiết bị tương lai",
+            "summary": "Vật liệu cực dương Silicon-Carbon nâng mật độ năng lượng pin lên 20-30%, cho phép smartphone duy trì độ mỏng ấn tượng trong khi vẫn sở hữu dung lượng pin lên đến 6000mAh.",
+            "thumbnail_url": "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=1200&auto=format&fit=crop&q=80",
+            "is_featured": False,
+            "is_published": True,
+            "view_count": 670,
+            "content": """## 1. Giới hạn của pin Li-ion truyền thống và sự trỗi dậy của Silicon-Carbon
+Cực dương của pin Lithium-ion truyền thống được làm từ graphite (than chì), vốn đã chạm trần mật độ lý thuyết về khả năng lưu trữ ion lithium. Bằng cách pha trộn vật liệu Silicon vào cấu trúc nano carbon, cực dương Silicon-Carbon có thể giữ được lượng ion gấp 10 lần so với than chì tinh khiết.
+
+Đột phá này giải quyết thành công nhược điểm giãn nở thể tích nhiệt của silicon, giúp tăng mật độ năng lượng tổng thể lên từ 20% đến 30% mà không làm tăng kích thước vật lý của viên pin.
+
+## 2. Trải nghiệm thực tế: Smartphone mỏng nhẹ pin trâu 2 ngày
+Nhờ công nghệ pin mới:
+- Các mẫu smartphone cao cấp siêu mỏng dưới 8mm giờ đây có thể tích hợp viên pin dung lượng **5.800mAh - 6.500mAh**, đáp ứng trọn vẹn 2 ngày làm việc cường độ cao với màn hình 120Hz.
+- Máy tính xách tay mỏng nhẹ Ultrabook có thể duy trì phát video 4K liên tục trên 20 giờ mà không cần mang theo củ sạc cồng kềnh.
+- Tuổi thọ pin được cải thiện rõ rệt, duy trì trên 80% dung lượng ban đầu sau hơn 1.600 chu kỳ sạc xả (tương đương 4-5 năm sử dụng liên tục).
+
+## 3. Tương lai của pin thể rắn hoàn toàn (All-Solid-State)
+Bước tiến tiếp theo trong vòng 3-5 năm tới là loại bỏ hoàn toàn dung dịch điện phân lỏng dễ cháy nổ, thay bằng chất điện phân gốm hoặc polymer rắn, mang lại độ an toàn tuyệt đối và tốc độ sạc siêu tốc 0-80% chỉ trong 10 phút.""",
+        },
+    ]
+
+    for item in articles_data:
+        existing = db.query(Article).filter(Article.slug == item["slug"]).first()
+        if existing:
+            print(f"[Article] Updating existing article '{item['title']}'...")
+            existing.title = item["title"]
+            existing.topic = item["topic"]
+            existing.summary = item["summary"]
+            existing.content = item["content"]
+            existing.thumbnail_url = item["thumbnail_url"]
+            existing.is_featured = item["is_featured"]
+            existing.is_published = item["is_published"]
+            existing.view_count = item["view_count"]
+            if author_id and not existing.author_id:
+                existing.author_id = author_id
+        else:
+            print(f"[Article] Creating article '{item['title']}'...")
+            article = Article(
+                title=item["title"],
+                slug=item["slug"],
+                topic=item["topic"],
+                summary=item["summary"],
+                content=item["content"],
+                thumbnail_url=item["thumbnail_url"],
+                author_id=author_id,
+                is_featured=item["is_featured"],
+                is_published=item["is_published"],
+                view_count=item["view_count"],
+            )
+            db.add(article)
+
+    db.commit()
+
+
+def seed_sample_orders(db: Session) -> None:
+    """Tạo một số đơn hàng mẫu để Phễu chuyển đổi, Bảng Best Sellers và Drop-off có số liệu thực tế."""
+    existing_count = db.query(Order).filter(Order.note == "SEED_BESTSELLER_ORDER").count()
+    if existing_count >= 15:
+        print(f"[Orders] Sample bestseller orders already exist ({existing_count} orders). Skipping.")
+        return
+
+    # Nếu có các đơn hàng seed cũ (nhãn 'Seed Analytics Order'), dọn dẹp để seed mới chuẩn xác
+    old_seed_orders = db.query(Order).filter(
+        (Order.note == "Seed Analytics Order") | (Order.note == "SEED_BESTSELLER_ORDER")
+    ).all()
+    if old_seed_orders:
+        for o in old_seed_orders:
+            db.query(OrderItem).filter(OrderItem.order_id == o.id).delete()
+            db.delete(o)
+        db.commit()
+
+    customer = db.query(User).filter(User.email == "customer@example.com").first()
+    customer_id = customer.id if customer else None
+
+    # Tìm các sản phẩm tiêu biểu
+    prods = db.query(Product).all()
+    prod_map = {p.slug: p for p in prods}
+
+    # Kịch bản đơn hàng Best Sellers rõ nét:
+    # 1. Keychron Q1 Pro: 6 đơn (7 sản phẩm) -> Top 1 Best Seller
+    # 2. Logitech G Pro X: 5 đơn (5 sản phẩm) -> Top 2 Best Seller
+    # 3. MacBook Air M2: 3 đơn (3 sản phẩm) -> Top 3 Best Seller
+    # 4. Keychron K2 Pro: 3 đơn (3 sản phẩm) -> Top 4
+    # 5. iPhone 15 Pro Max: 2 đơn (2 sản phẩm) -> Top 5
+    # 6. Dell XPS 13 Plus: 1 đơn (1 sản phẩm)
+    # 7. MacBook Pro 14 M3 Pro: 1 đơn (1 sản phẩm)
+    # 8. iPhone 16 Pro Max: 1 đơn (1 sản phẩm - dropoff cao)
+    # 9. ASUS ROG Strix: 1 đơn (1 sản phẩm - dropoff cao)
+    # AirPods Max, Samsung Odyssey, Xiaomi 14 Ultra, ASUS ProArt: 0 đơn (Dead stock / Dropoff 100%)
+    order_specs = [
+        # Keychron Q1 Pro (7 units)
+        ("ban-phim-co-keychron-q1-pro-wireless", 2, OrderStatus.DELIVERED, 2),
+        ("ban-phim-co-keychron-q1-pro-wireless", 1, OrderStatus.DELIVERED, 3),
+        ("ban-phim-co-keychron-q1-pro-wireless", 1, OrderStatus.CONFIRMED, 5),
+        ("ban-phim-co-keychron-q1-pro-wireless", 1, OrderStatus.DELIVERED, 7),
+        ("ban-phim-co-keychron-q1-pro-wireless", 1, OrderStatus.DELIVERED, 10),
+        ("ban-phim-co-keychron-q1-pro-wireless", 1, OrderStatus.DELIVERED, 12),
+        # Logitech G Pro X (5 units)
+        ("chuot-gaming-logitech-g-pro-x-superlight-2", 1, OrderStatus.DELIVERED, 1),
+        ("chuot-gaming-logitech-g-pro-x-superlight-2", 1, OrderStatus.CONFIRMED, 4),
+        ("chuot-gaming-logitech-g-pro-x-superlight-2", 1, OrderStatus.DELIVERED, 6),
+        ("chuot-gaming-logitech-g-pro-x-superlight-2", 1, OrderStatus.DELIVERED, 8),
+        ("chuot-gaming-logitech-g-pro-x-superlight-2", 1, OrderStatus.DELIVERED, 11),
+        # MacBook Air M2 (3 units)
+        ("macbook-air-m2-13-6-inch-8gb-256gb", 1, OrderStatus.DELIVERED, 3),
+        ("macbook-air-m2-13-6-inch-8gb-256gb", 1, OrderStatus.DELIVERED, 6),
+        ("macbook-air-m2-13-6-inch-8gb-256gb", 1, OrderStatus.CONFIRMED, 9),
+        # Keychron K2 Pro (3 units)
+        ("ban-phim-co-keychron-k2-pro", 1, OrderStatus.DELIVERED, 4),
+        ("ban-phim-co-keychron-k2-pro", 1, OrderStatus.DELIVERED, 8),
+        ("ban-phim-co-keychron-k2-pro", 1, OrderStatus.DELIVERED, 13),
+        # iPhone 15 Pro Max (2 units)
+        ("iphone-15-pro-max-256gb-titan-xanh", 1, OrderStatus.DELIVERED, 5),
+        ("iphone-15-pro-max-256gb-titan-xanh", 1, OrderStatus.DELIVERED, 14),
+        # Single unit items
+        ("dell-xps-13-plus-9320-i7-16gb-512gb", 1, OrderStatus.DELIVERED, 5),
+        ("macbook-pro-14-inch-m3-pro-18gb-512gb", 1, OrderStatus.DELIVERED, 6),
+        ("iphone-16-pro-max-256gb-titan-sa-mac", 1, OrderStatus.DELIVERED, 3),
+        ("asus-rog-strix-g16-g614jv-i7-rtx4060", 1, OrderStatus.CONFIRMED, 2),
+    ]
+
+    now = datetime.now(timezone.utc)
+    created_count = 0
+
+    for slug, qty, status, days_ago in order_specs:
+        prod = prod_map.get(slug)
+        if not prod:
+            continue
+
+        created_time = now - timedelta(days=days_ago, hours=random.randint(1, 12))
+        price = prod.sale_price if prod.sale_price else prod.price
+        total_amount = price * qty
+
+        order = Order(
+            user_id=customer_id,
+            recipient_name="Nguyễn Văn A",
+            recipient_phone="0903456789",
+            shipping_address="123 Đường Công Nghệ, Phường Bách Khoa, Quận Hai Bà Trưng, Hà Nội",
+            note="SEED_BESTSELLER_ORDER",
+            total_amount=total_amount,
+            payment_method="COD",
+            status=status,
+            created_at=created_time,
+            updated_at=created_time,
+        )
+        db.add(order)
+        db.flush()
+
+        item = OrderItem(
+            order_id=order.id,
+            product_id=prod.id,
+            product_name=prod.name,
+            product_image=prod.thumbnail_url,
+            unit_price=price,
+            quantity=qty,
+        )
+        db.add(item)
+        created_count += 1
+
+    db.commit()
+    print(f"[Orders] Created {created_count} sample bestseller analytics orders.")
+
+
+def seed_user_events(db: Session) -> None:
+    """Tạo 350-500 sự kiện hành vi người dùng trong 7-14 ngày gần nhất."""
+    current_count = db.query(UserEvent).count()
+    if current_count >= 250:
+        print(f"[Analytics] user_events already seeded ({current_count} events). Skipping.")
+        return
+
+    # Nếu có ít hơn do lần chạy trước sai slug, dọn dẹp để seed lại đủ bộ
+    if current_count > 0:
+        db.query(UserEvent).delete()
+        db.commit()
+
+    print("[Analytics] Generating realistic user behavior events...")
+    prods = db.query(Product).all()
+    categories = db.query(Category).all()
+    customer = db.query(User).filter(User.email == "customer@example.com").first()
+    customer_id = customer.id if customer else None
+
+    prod_by_slug = {p.slug: p for p in prods}
+    now = datetime.now(timezone.utc)
+
+    # 40 distinct sessions
+    sessions = [f"sess_{uuid.uuid4().hex[:12]}" for _ in range(40)]
+
+    events_to_add = []
+
+    def random_time(days_max=12):
+        return now - timedelta(
+            days=random.randint(0, days_max),
+            hours=random.randint(0, 23),
+            minutes=random.randint(0, 59),
+        )
+
+    # 1. Product Views & Cart Adds by Scenario
+    target_prods = [
+        # (slug, views_count, cart_adds_count, remove_count)
+        ("iphone-16-pro-max-256gb-titan-sa-mac", 85, 24, 3),
+        ("asus-rog-strix-g16-g614jv-i7-rtx4060", 65, 18, 2),
+        ("tai-nghe-apple-airpods-max-usb-c", 48, 14, 2),
+        ("macbook-pro-14-inch-m3-pro-18gb-512gb", 42, 14, 1),
+        ("dell-xps-13-plus-9320-i7-16gb-512gb", 30, 10, 0),
+        ("ban-phim-co-keychron-q1-pro-wireless", 32, 16, 0),
+        ("chuot-gaming-logitech-g-pro-x-superlight-2", 30, 15, 0),
+        ("man-hinh-gaming-dell-g2724d-27-inch-2k-165hz", 26, 8, 1),
+        ("samsung-galaxy-s24-ultra-5g-256gb", 28, 9, 1),
+        ("ban-phim-co-keychron-k2-pro", 24, 10, 0),
+    ]
+
+    for slug, views, cart_adds, removes in target_prods:
+        p = prod_by_slug.get(slug)
+        if not p:
+            continue
+
+        for _ in range(views):
+            sess = random.choice(sessions)
+            u_id = customer_id if random.random() < 0.3 else None
+            events_to_add.append(
+                UserEvent(
+                    user_id=u_id,
+                    session_id=sess,
+                    event_type="PRODUCT_VIEW",
+                    product_id=p.id,
+                    category_id=p.category_id,
+                    metadata_json={"brand": p.brand, "price": p.price},
+                    created_at=random_time(),
+                )
+            )
+
+        for _ in range(cart_adds):
+            sess = random.choice(sessions)
+            u_id = customer_id if random.random() < 0.4 else None
+            events_to_add.append(
+                UserEvent(
+                    user_id=u_id,
+                    session_id=sess,
+                    event_type="ADD_TO_CART",
+                    product_id=p.id,
+                    category_id=p.category_id,
+                    metadata_json={"brand": p.brand, "price": p.price},
+                    created_at=random_time(),
+                )
+            )
+
+        for _ in range(removes):
+            sess = random.choice(sessions)
+            events_to_add.append(
+                UserEvent(
+                    user_id=None,
+                    session_id=sess,
+                    event_type="REMOVE_FROM_CART",
+                    product_id=p.id,
+                    category_id=p.category_id,
+                    metadata_json={"brand": p.brand},
+                    created_at=random_time(),
+                )
+            )
+
+    # 2. Category Views (~50 events)
+    for cat in categories:
+        count = 18 if "laptop" in cat.slug else (15 if "thoai" in cat.slug else 10)
+        for _ in range(count):
+            events_to_add.append(
+                UserEvent(
+                    user_id=None,
+                    session_id=random.choice(sessions),
+                    event_type="CATEGORY_VIEW",
+                    category_id=cat.id,
+                    metadata_json={"category_slug": cat.slug},
+                    created_at=random_time(),
+                )
+            )
+
+    # 3. Search Queries (~75 events)
+    hot_keywords = [
+        ("MacBook M3", 18),
+        ("RTX 4060", 15),
+        ("iPhone 16", 13),
+        ("Màn hình 2K", 10),
+        ("Bàn phím cơ", 8),
+        ("Tai nghe chống ồn", 6),
+        ("Laptop gaming", 5),
+    ]
+
+    for kw, freq in hot_keywords:
+        for _ in range(freq):
+            events_to_add.append(
+                UserEvent(
+                    user_id=None,
+                    session_id=random.choice(sessions),
+                    event_type="SEARCH",
+                    search_query=kw,
+                    created_at=random_time(),
+                )
+            )
+
+    db.bulk_save_objects(events_to_add)
+    db.commit()
+    print(f"[Analytics] Successfully seeded {len(events_to_add)} user behavior events.")
 
 
 def main() -> None:
@@ -1369,6 +1861,15 @@ def main() -> None:
 
         print("\n=== 3. Seeding Products ===")
         seed_products(db, category_map)
+
+        print("\n=== 4. Seeding Tech Articles ===")
+        seed_articles(db)
+
+        print("\n=== 5. Seeding Sample Analytics Orders ===")
+        seed_sample_orders(db)
+
+        print("\n=== 6. Seeding User Behavior Events ===")
+        seed_user_events(db)
 
         print("\n🎉 Seed completed successfully!")
     finally:

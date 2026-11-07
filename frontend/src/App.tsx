@@ -8,11 +8,14 @@ import ProductDetailPage from "./pages/client/ProductDetailPage";
 import CheckoutPage from "./pages/client/CheckoutPage";
 import MyOrdersPage from "./pages/client/MyOrdersPage";
 import ProfilePage from "./pages/client/ProfilePage";
+import TechNewsPage from "./pages/client/TechNewsPage";
+import ArticleDetailPage from "./pages/client/ArticleDetailPage";
 import DashboardPage from "./pages/admin/DashboardPage";
 import UsersPage from "./pages/admin/UsersPage";
 import ProductsPage from "./pages/admin/ProductsPage";
 import CategoriesPage from "./pages/admin/CategoriesPage";
 import OrdersPage from "./pages/admin/OrdersPage";
+import ArticlesPage from "./pages/admin/ArticlesPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import SSOCallbackPage from "./pages/auth/SSOCallbackPage";
@@ -83,6 +86,8 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
+            <Route path="news" element={<TechNewsPage />} />
+            <Route path="news/:slug" element={<ArticleDetailPage />} />
           </Route>
 
           {/* Admin Dashboard Routes - Guarded: STAFF and ADMIN only */}
@@ -98,6 +103,7 @@ const App: React.FC = () => {
             <Route path="users" element={<UsersPage />} />
             <Route path="products" element={<ProductsPage />} />
             <Route path="categories" element={<CategoriesPage />} />
+            <Route path="articles" element={<ArticlesPage />} />
             <Route path="orders" element={<OrdersPage />} />
           </Route>
 

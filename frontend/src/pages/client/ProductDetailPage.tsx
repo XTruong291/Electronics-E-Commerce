@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Row,
   Col,
@@ -30,6 +30,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { getProduct } from "../../api/catalog.api";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
+import { trackEvent } from "../../utils/tracker";
 import type { Product } from "../../types/catalog";
 
 const { Title, Text } = Typography;
@@ -49,6 +50,11 @@ const ProductDetailPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
+  const trackedProductIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    trackedProductIdRef.current = null;
+  }, [slug]);
 
   useEffect(() => {
     if (!slug) return;
@@ -63,6 +69,19 @@ const ProductDetailPage: React.FC = () => {
           (data.images && data.images.length > 0 ? data.images[0] : "") ||
           "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=500&auto=format&fit=crop&q=60";
         setActiveImage(initialImg);
+
+        // Chống gửi trùng PRODUCT_VIEW do React StrictMode mount 2 lần
+        if (trackedProductIdRef.current !== data.id) {
+          trackedProductIdRef.current = data.id;
+          trackEvent("PRODUCT_VIEW", {
+            product_id: data.id,
+            category_id: data.category_id,
+            metadata_json: {
+              brand: data.brand,
+              price: data.sale_price || data.price,
+            },
+          });
+        }
       } catch (err: unknown) {
         console.error("Lỗi tải chi tiết sản phẩm:", err);
         setErrorMsg("Không tìm thấy sản phẩm hoặc sản phẩm đã ngừng kinh doanh.");

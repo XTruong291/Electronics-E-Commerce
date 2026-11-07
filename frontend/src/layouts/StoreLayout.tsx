@@ -36,11 +36,13 @@ import {
   CarOutlined,
   SyncOutlined,
   AppstoreOutlined,
+  ReadOutlined,
 } from "@ant-design/icons";
-import { Outlet, Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Outlet, Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { useCartStore } from "../store/useCartStore";
 import { getCategories } from "../api/catalog.api";
+import { trackEvent } from "../utils/tracker";
 import type { Category } from "../types/catalog";
 
 const { Header, Content, Footer } = Layout;
@@ -53,13 +55,16 @@ const formatPrice = (val: number): string => {
 const StoreLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const [cartOpen, setCartOpen] = useState(false);
   const [headerSearch, setHeaderSearch] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
 
+  const isNewsActive = location.pathname.startsWith("/news");
   const currentCategorySlug = searchParams.get("category");
+  const isAllProductsActive = location.pathname === "/" && !currentCategorySlug && !isNewsActive;
   const currentSearch = searchParams.get("search") || "";
 
   useEffect(() => {
@@ -93,6 +98,7 @@ const StoreLayout: React.FC = () => {
   const handleSearchSubmit = () => {
     const trimmed = headerSearch.trim();
     if (trimmed) {
+      trackEvent("SEARCH", { search_query: trimmed });
       navigate(`/?search=${encodeURIComponent(trimmed)}`);
     } else {
       navigate("/");
@@ -437,10 +443,10 @@ const StoreLayout: React.FC = () => {
               transition: "all 0.2s ease",
               padding: "4px 12px",
               borderRadius: 16,
-              background: !currentCategorySlug ? "rgba(203, 28, 34, 0.08)" : "transparent",
-              color: !currentCategorySlug ? "#cb1c22" : "#4b5563",
-              fontWeight: !currentCategorySlug ? 700 : 500,
-              border: !currentCategorySlug ? "1px solid rgba(203, 28, 34, 0.2)" : "1px solid transparent",
+              background: isAllProductsActive ? "rgba(203, 28, 34, 0.08)" : "transparent",
+              color: isAllProductsActive ? "#cb1c22" : "#4b5563",
+              fontWeight: isAllProductsActive ? 700 : 500,
+              border: isAllProductsActive ? "1px solid rgba(203, 28, 34, 0.2)" : "1px solid transparent",
             }}
           >
             <AppstoreOutlined style={{ fontSize: 14 }} />
@@ -454,6 +460,14 @@ const StoreLayout: React.FC = () => {
               <Link
                 key={cat.id || cat.slug}
                 to={`/?category=${cat.slug}`}
+                onClick={() => {
+                  if (cat.id) {
+                    trackEvent("CATEGORY_VIEW", {
+                      category_id: cat.id,
+                      metadata_json: { slug: cat.slug, name: cat.name },
+                    });
+                  }
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -475,6 +489,43 @@ const StoreLayout: React.FC = () => {
               </Link>
             );
           })}
+
+          {/* 3. Tech Blog / Future Tech Link */}
+          <Link
+            to="/news"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 13,
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s ease",
+              padding: "4px 12px",
+              borderRadius: 16,
+              background: isNewsActive ? "rgba(203, 28, 34, 0.08)" : "transparent",
+              color: isNewsActive ? "#cb1c22" : "#111827",
+              fontWeight: isNewsActive ? 700 : 600,
+              border: isNewsActive ? "1px solid rgba(203, 28, 34, 0.2)" : "1px solid transparent",
+            }}
+          >
+            <ReadOutlined style={{ fontSize: 14, color: isNewsActive ? "#cb1c22" : "#e11d48" }} />
+            <span>Tin công nghệ & Tương lai</span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: "#fff",
+                background: "#cb1c22",
+                padding: "1px 6px",
+                borderRadius: 8,
+                lineHeight: "14px",
+                boxShadow: "0 1px 4px rgba(203,28,34,0.3)",
+              }}
+            >
+              HOT
+            </span>
+          </Link>
 
           {(user?.role === "ADMIN" || user?.role === "STAFF") && (
             <Link
@@ -552,7 +603,11 @@ const StoreLayout: React.FC = () => {
                 <li>Bảo hành chính hãng 24 tháng</li>
                 <li>Chính sách đổi trả trong 30 ngày</li>
                 <li>Giao hàng hỏa tốc trong 2 giờ</li>
-                <li>Chính sách bảo mật thanh toán</li>
+                <li>
+                  <Link to="/news" style={{ color: "#cb1c22", fontWeight: 600 }}>
+                    Tin công nghệ & Tương lai →
+                  </Link>
+                </li>
               </ul>
             </div>
 
