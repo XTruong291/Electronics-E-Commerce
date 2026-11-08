@@ -128,7 +128,24 @@ docker compose ps
    CLOUDINARY_API_SECRET=
    ```
 
-5. Khởi động server Backend:
+5. Khởi tạo cấu trúc các bảng Database (Alembic Migration):
+   ```powershell
+   alembic upgrade head
+   ```
+
+6. Nạp dữ liệu mẫu hoàn chỉnh (Seed Data):
+   ```powershell
+   python -m app.seed
+   ```
+   > 💡 Lệnh seed sẽ tự động khởi tạo:
+   > - 3 tài khoản mẫu: Quản trị viên (`admin@example.com`), Nhân viên (`staff@example.com`), Khách hàng (`customer@example.com`).
+   > - 4 danh mục chính (Laptop, Điện thoại, Màn hình, Phụ kiện).
+   > - 50+ sản phẩm chi tiết đầy đủ hình ảnh, thông số kỹ thuật, giá niêm yết, tồn kho và SKU.
+   > - 8 bài viết tin tức công nghệ chuyên sâu (Tech Blog / News).
+   > - 23 đơn hàng mẫu phân bổ Best Sellers và Dead Stock.
+   > - Gần 700 sự kiện theo dõi hành vi người dùng (Views, Cart Adds, Searches) để phục vụ Phễu chuyển đổi & Trợ lý Quản trị Ximi AI.
+
+7. Khởi động server Backend:
    ```powershell
    uvicorn app.main:app --reload --port 8000
    ```
@@ -178,12 +195,21 @@ Mở một cửa sổ Terminal mới:
 | **phpMyAdmin** | [http://localhost:8080](http://localhost:8080) | Giao diện quản lý Database trực quan |
 
 ### Thông tin đăng nhập mặc định:
-- **phpMyAdmin / MySQL:**
-  - **Server (nếu hỏi):** `mysql`
-  - **Username:** `ecom_user` (hoặc `root`)
-  - **Password:** `ecom_password` (hoặc `root_password`)
-  - **Database name:** `ecommerce_db`
-  - **Host Port trên máy host:** `3307`
+
+#### 1. Tài khoản Người dùng Hệ thống (được tạo sau khi chạy `python -m app.seed`):
+
+| Vai trò | Email đăng nhập | Mật khẩu | Quyền hạn truy cập |
+| :--- | :--- | :--- | :--- |
+| **Quản trị viên (Admin)** | `admin@example.com` | `Admin@123` | Toàn quyền hệ thống, quản trị Dashboard `/admin`, sản phẩm, đơn hàng, người dùng, bài viết, AI Copilot |
+| **Nhân viên (Staff)** | `staff@example.com` | `Staff@123` | Truy cập `/admin`, quản trị sản phẩm, xử lý cập nhật trạng thái đơn hàng |
+| **Khách hàng (Customer)** | `customer@example.com` | `Customer@123` | Mua sắm tại Storefront, đặt hàng, quản lý đơn cá nhân, sổ địa chỉ |
+
+#### 2. Cơ sở dữ liệu phpMyAdmin / MySQL:
+- **Server (nếu hỏi):** `mysql`
+- **Username:** `ecom_user` (hoặc `root`)
+- **Password:** `ecom_password` (hoặc `root_password`)
+- **Database name:** `ecommerce_db`
+- **Host Port trên máy host:** `3307`
 
 ---
 
