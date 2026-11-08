@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Row,
   Col,
@@ -30,6 +30,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { getProduct } from "../../api/catalog.api";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
+import { trackEvent } from "../../utils/tracker";
 import type { Product } from "../../types/catalog";
 
 const { Title, Text } = Typography;
@@ -49,6 +50,11 @@ const ProductDetailPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
+  const trackedProductIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    trackedProductIdRef.current = null;
+  }, [slug]);
 
   useEffect(() => {
     if (!slug) return;
@@ -63,6 +69,19 @@ const ProductDetailPage: React.FC = () => {
           (data.images && data.images.length > 0 ? data.images[0] : "") ||
           "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=500&auto=format&fit=crop&q=60";
         setActiveImage(initialImg);
+
+        // Chống gửi trùng PRODUCT_VIEW do React StrictMode mount 2 lần
+        if (trackedProductIdRef.current !== data.id) {
+          trackedProductIdRef.current = data.id;
+          trackEvent("PRODUCT_VIEW", {
+            product_id: data.id,
+            category_id: data.category_id,
+            metadata_json: {
+              brand: data.brand,
+              price: data.sale_price || data.price,
+            },
+          });
+        }
       } catch (err: unknown) {
         console.error("Lỗi tải chi tiết sản phẩm:", err);
         setErrorMsg("Không tìm thấy sản phẩm hoặc sản phẩm đã ngừng kinh doanh.");
@@ -288,18 +307,18 @@ const ProductDetailPage: React.FC = () => {
               {product.name}
             </Title>
 
-            {/* Price Box */}
+            {/* Price Box (Đồng bộ chuẩn đỏ XìMiStore & nền tint #fef2f2) */}
             <div
               style={{
-                background: "#fff5f5",
+                background: "#fef2f2",
                 padding: "16px 20px",
                 borderRadius: 10,
-                border: "1px solid #fed7d7",
+                border: "1px solid #fecaca",
                 marginBottom: 20,
               }}
             >
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 28, fontWeight: 800, color: "#d70018" }}>
+                <span style={{ fontSize: 28, fontWeight: 800, color: "#cb1c22" }}>
                   {formatPrice(currentPrice)}
                 </span>
                 {hasDiscount && (
@@ -309,7 +328,7 @@ const ProductDetailPage: React.FC = () => {
                     </Text>
                     <span
                       style={{
-                        background: "#d70018",
+                        background: "#cb1c22",
                         color: "#fff",
                         fontWeight: 700,
                         fontSize: 12,
@@ -329,40 +348,51 @@ const ProductDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Khung Khuyến mãi & Quyền lợi khách hàng */}
+            {/* Khung Khuyến mãi & Quyền lợi khách hàng (Thiết kế thanh lịch, viền liền, icon chuẩn đỏ) */}
             <div
               style={{
                 borderRadius: 10,
-                background: "#fff8f8",
-                border: "1px dashed #f87171",
-                padding: "14px 18px",
+                background: "#ffffff",
+                border: "1px solid #e5e7eb",
+                overflow: "hidden",
                 marginBottom: 20,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <div
+                style={{
+                  background: "#fef2f2",
+                  borderBottom: "1px solid #fecaca",
+                  padding: "10px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
                 <GiftOutlined style={{ color: "#cb1c22", fontSize: 16 }} />
                 <span style={{ color: "#cb1c22", fontWeight: 700, fontSize: 13, textTransform: "uppercase" }}>
-                  Ưu đãi & Quyền lợi độc quyền
+                  Ưu đãi & Quyền lợi độc quyền tại XìMiStore
                 </span>
               </div>
-              <Space direction="vertical" size={6} style={{ width: "100%", fontSize: 13, color: "#374151" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <SafetyCertificateOutlined style={{ color: "#16a34a" }} />
-                  Bảo hành chính hãng 24 tháng tại các trung tâm ủy quyền toàn quốc
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <CarOutlined style={{ color: "#2563eb" }} />
-                  Giao nhanh trong 2 giờ tại nội thành, hỗ trợ kiểm tra hàng trước khi nhận
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <SyncOutlined style={{ color: "#ea580c" }} />
-                  Hư gì đổi nấy trong 30 ngày đầu tiên nếu có lỗi phần cứng từ nhà sản xuất
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <CreditCardOutlined style={{ color: "#7c3aed" }} />
-                  Hỗ trợ trả góp 0% lãi suất qua thẻ tín dụng và công ty tài chính
-                </div>
-              </Space>
+              <div style={{ padding: "14px 16px" }}>
+                <Space direction="vertical" size={8} style={{ width: "100%", fontSize: 13, color: "#374151" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <SafetyCertificateOutlined style={{ color: "#cb1c22" }} />
+                    Bảo hành chính hãng 24 tháng tại các trung tâm ủy quyền toàn quốc
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <CarOutlined style={{ color: "#cb1c22" }} />
+                    Giao nhanh trong 2 giờ tại nội thành, hỗ trợ kiểm tra hàng trước khi nhận
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <SyncOutlined style={{ color: "#cb1c22" }} />
+                    Hư gì đổi nấy trong 30 ngày đầu tiên nếu có lỗi phần cứng từ nhà sản xuất
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <CreditCardOutlined style={{ color: "#cb1c22" }} />
+                    Hỗ trợ trả góp 0% lãi suất qua thẻ tín dụng và công ty tài chính
+                  </div>
+                </Space>
+              </div>
             </div>
 
             {/* Stock status & Quantity Selector */}

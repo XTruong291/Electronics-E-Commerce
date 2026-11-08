@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
 from app.crud.order import (
+    get_dashboard_stats,
     get_order_by_id as get_order_by_id_crud,
     list_admin_orders,
     update_order_status as update_order_status_crud,
@@ -21,6 +22,7 @@ from app.models.order import OrderStatus
 from app.models.user import User, UserRole
 from app.schemas.auth import UserResponse
 from app.schemas.order import (
+    DashboardStatsResponse,
     OrderListResponse,
     OrderResponse,
     OrderStatusUpdate,
@@ -44,6 +46,17 @@ def admin_ping(
         "email": current_user.email,
         "role": current_user.role.value,
     }
+
+
+@router.get("/stats", response_model=DashboardStatsResponse)
+def get_admin_dashboard_stats(
+    days: int = Query(7, ge=1, le=90, description="Số ngày thống kê xu hướng"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.STAFF, UserRole.ADMIN])),
+):
+    """Lấy số liệu thống kê tổng quan (Doanh thu, Đơn hàng, Xu hướng) cho Admin Dashboard."""
+    stats = get_dashboard_stats(db=db, days=days)
+    return DashboardStatsResponse(**stats)
 
 
 @router.get("/orders", response_model=OrderListResponse)
@@ -228,4 +241,3 @@ def delete_admin_user(
 
     delete_user(db=db, user=target_user)
     return {"message": "Đã xóa người dùng thành công", "deleted_user_id": user_id}
-

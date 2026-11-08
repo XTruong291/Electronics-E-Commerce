@@ -29,6 +29,9 @@ def test_create_order_unauthenticated_fails(client: TestClient, db_session):
     """Test that creating an order without login fails with 401."""
     db_session.rollback()
     product = db_session.query(Product).first()
+    if product.stock < 10:
+        product.stock = 50
+        db_session.commit()
     assert product is not None
 
     payload = {
@@ -49,6 +52,9 @@ def test_create_order_customer_success_and_stock_deduction(
     """Test customer order placement: validates stock deduction, snapshotting, and calculation."""
     db_session.rollback()
     product = db_session.query(Product).first()
+    if product.stock < 10:
+        product.stock = 50
+        db_session.commit()
     assert product is not None
     initial_stock = product.stock
     expected_unit_price = product.sale_price if product.sale_price else product.price
@@ -89,6 +95,9 @@ def test_create_order_insufficient_stock_fails(client: TestClient, customer_head
     """Test that ordering more than available stock is rejected."""
     db_session.rollback()
     product = db_session.query(Product).first()
+    if product.stock < 10:
+        product.stock = 50
+        db_session.commit()
     assert product is not None
 
     payload = {
@@ -205,6 +214,12 @@ def test_customer_cancel_pending_order_success_and_restocks(
     """Test that customer can cancel their own pending order and stock is restored."""
     db_session.rollback()
     product = db_session.query(Product).first()
+    if product.stock < 10:
+        product.stock = 50
+        db_session.commit()
+    if product.stock < 10:
+        product.stock = 50
+        db_session.commit()
     stock_before = product.stock
 
     payload = {
@@ -237,6 +252,9 @@ def test_customer_cancel_confirmed_order_fails(
     """Test that customer cannot cancel an order once it is CONFIRMED."""
     db_session.rollback()
     product = db_session.query(Product).first()
+    if product.stock < 10:
+        product.stock = 50
+        db_session.commit()
 
     payload = {
         "recipient_name": "Test Reject Cancel",
@@ -269,6 +287,9 @@ def test_customer_cancel_another_user_order_rejected(
     """Test that customer cannot cancel an order belonging to another user."""
     db_session.rollback()
     product = db_session.query(Product).first()
+    if product.stock < 10:
+        product.stock = 50
+        db_session.commit()
 
     # Admin places an order
     admin_order_res = client.post(

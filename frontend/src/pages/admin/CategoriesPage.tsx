@@ -148,7 +148,7 @@ const CategoriesPage: React.FC = () => {
       key: "name",
       render: (name: string) => (
         <Space>
-          <AppstoreOutlined style={{ color: "#1677ff" }} />
+          <AppstoreOutlined style={{ color: "#cb1c22" }} />
           <Text strong>{name}</Text>
         </Space>
       ),

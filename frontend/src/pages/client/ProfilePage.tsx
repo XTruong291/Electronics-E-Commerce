@@ -211,7 +211,7 @@ const ProfilePage: React.FC = () => {
                         src={user?.avatar_url}
                         icon={!user?.avatar_url && <UserOutlined style={{ fontSize: 50 }} />}
                         style={{
-                          backgroundColor: "#1677ff",
+                          backgroundColor: "#cb1c22",
                           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                         }}
                       />

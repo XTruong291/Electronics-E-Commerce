@@ -1,5 +1,6 @@
 import axiosClient from "./axiosClient";
 import type {
+  DashboardStatsResponse,
   Order,
   OrderCreatePayload,
   OrderFilterParams,
@@ -56,3 +57,10 @@ export const updateOrderStatus = async (
   })) as unknown as Order;
 };
 
+export const getAdminDashboardStats = async (
+  days: number = 7
+): Promise<DashboardStatsResponse> => {
+  return (await axiosClient.get("/admin/stats", {
+    params: { days },
+  })) as unknown as DashboardStatsResponse;
+};

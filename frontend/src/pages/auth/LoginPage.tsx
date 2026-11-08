@@ -5,7 +5,7 @@ import {
   MailOutlined,
   GoogleOutlined,
   GithubOutlined,
-  ShoppingOutlined,
+  ThunderboltFilled,
 } from "@ant-design/icons";
 import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
@@ -61,7 +61,7 @@ const LoginPage: React.FC = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)",
+        background: "#f4f5f7",
         padding: "24px 16px",
       }}
     >
@@ -70,8 +70,8 @@ const LoginPage: React.FC = () => {
           width: "100%",
           maxWidth: 420,
           borderRadius: 16,
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
-          border: "1px solid rgba(0, 0, 0, 0.06)",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)",
+          border: "1px solid #e5e7eb",
         }}
         styles={{ body: { padding: "36px 32px" } }}
       >
@@ -80,7 +80,7 @@ const LoginPage: React.FC = () => {
             style={{
               width: 52,
               height: 52,
-              background: "#1677ff",
+              background: "#cb1c22",
               color: "#fff",
               borderRadius: "50%",
               display: "inline-flex",
@@ -88,15 +88,16 @@ const LoginPage: React.FC = () => {
               justifyContent: "center",
               fontSize: 26,
               marginBottom: 12,
+              boxShadow: "0 4px 12px rgba(203, 28, 34, 0.25)",
             }}
           >
-            <ShoppingOutlined />
+            <ThunderboltFilled />
           </div>
-          <Title level={3} style={{ margin: "0 0 6px 0", fontWeight: 700 }}>
+          <Title level={3} style={{ margin: "0 0 6px 0", fontWeight: 700, color: "#111827" }}>
             Đăng nhập tài khoản
           </Title>
           <Text type="secondary" style={{ fontSize: 14 }}>
-            Chào mừng bạn quay lại với E-Commerce
+            Chào mừng bạn quay lại với XìMiStore
           </Text>
         </div>
 
@@ -155,6 +156,8 @@ const LoginPage: React.FC = () => {
                 borderRadius: 8,
                 fontWeight: 600,
                 fontSize: 15,
+                background: "#cb1c22",
+                borderColor: "#cb1c22",
               }}
             >
               Đăng nhập
@@ -166,7 +169,7 @@ const LoginPage: React.FC = () => {
           Hoặc tiếp tục với
         </Divider>
 
-        <Space orientation="vertical" style={{ width: "100%" }} size="middle">
+        <Space direction="vertical" style={{ width: "100%" }} size="middle">
           <Button
             block
             size="large"
@@ -205,7 +208,7 @@ const LoginPage: React.FC = () => {
         <div style={{ textAlign: "center", marginTop: 24 }}>
           <Text type="secondary" style={{ fontSize: 14 }}>
             Chưa có tài khoản?{" "}
-            <Link to="/register" style={{ fontWeight: 600, color: "#1677ff" }}>
+            <Link to="/register" style={{ fontWeight: 600, color: "#cb1c22" }}>
               Đăng ký ngay
             </Link>
           </Text>
