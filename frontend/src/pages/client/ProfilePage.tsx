@@ -30,11 +30,13 @@ import {
 } from "@ant-design/icons";
 import axiosClient from "../../api/axiosClient";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useResponsive } from "../../hooks/useResponsive";
 import type { Address, AddressCreatePayload, User } from "../../types/auth";
 
 const { Title, Text } = Typography;
 
 const ProfilePage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const { user, setUser } = useAuthStore();
   const [profileForm] = Form.useForm();
   const [addressForm] = Form.useForm();
@@ -211,7 +213,7 @@ const ProfilePage: React.FC = () => {
                         src={user?.avatar_url}
                         icon={!user?.avatar_url && <UserOutlined style={{ fontSize: 50 }} />}
                         style={{
-                          backgroundColor: "#1677ff",
+                          backgroundColor: "#cb1c22",
                           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                         }}
                       />
@@ -407,6 +409,7 @@ const ProfilePage: React.FC = () => {
         okText="Lưu địa chỉ"
         cancelText="Hủy"
         destroyOnClose
+        width={isMobile ? "100%" : 560}
       >
         <Form
           form={addressForm}
@@ -415,7 +418,7 @@ const ProfilePage: React.FC = () => {
           style={{ marginTop: 16 }}
         >
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="recipient"
                 label="Tên người nhận"
@@ -424,7 +427,7 @@ const ProfilePage: React.FC = () => {
                 <Input placeholder="Ví dụ: Nguyễn Văn A" />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="phone"
                 label="Số điện thoại"
@@ -436,7 +439,7 @@ const ProfilePage: React.FC = () => {
           </Row>
 
           <Row gutter={16}>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <Form.Item
                 name="province"
                 label="Tỉnh / Thành phố"
@@ -445,7 +448,7 @@ const ProfilePage: React.FC = () => {
                 <Input placeholder="Hà Nội / TP.HCM" />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <Form.Item
                 name="district"
                 label="Quận / Huyện"
@@ -454,7 +457,7 @@ const ProfilePage: React.FC = () => {
                 <Input placeholder="Cầu Giấy" />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <Form.Item
                 name="ward"
                 label="Phường / Xã"

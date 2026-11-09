@@ -25,6 +25,7 @@ import {
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import { getMyOrders, cancelMyOrder } from "../../api/order.api";
+import { useResponsive } from "../../hooks/useResponsive";
 import type { Order, OrderStatus } from "../../types/order";
 
 const { Title, Text } = Typography;
@@ -51,6 +52,7 @@ const getStatusTag = (status: OrderStatus) => {
 };
 
 const MyOrdersPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -94,10 +96,10 @@ const MyOrdersPage: React.FC = () => {
   }, [fetchOrders]);
 
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 16px 64px" }}>
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: isMobile ? "16px 8px 48px" : "24px 16px 64px" }}>
       <div
         style={{
-          marginBottom: 24,
+          marginBottom: isMobile ? 16 : 24,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -106,12 +108,14 @@ const MyOrdersPage: React.FC = () => {
         }}
       >
         <div>
-          <Title level={3} style={{ margin: 0 }}>
+          <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
             Đơn hàng của tôi
           </Title>
-          <Text type="secondary">Lịch sử và tiến độ các đơn hàng bạn đã đặt</Text>
+          <Text type="secondary" style={{ fontSize: isMobile ? 12 : 14 }}>
+            Lịch sử và tiến độ các đơn hàng bạn đã đặt
+          </Text>
         </div>
-        <Button icon={<ReloadOutlined />} onClick={fetchOrders} loading={loading}>
+        <Button icon={<ReloadOutlined />} onClick={fetchOrders} loading={loading} size={isMobile ? "small" : "middle"}>
           Làm mới
         </Button>
       </div>
@@ -151,7 +155,7 @@ const MyOrdersPage: React.FC = () => {
                     }}
                   >
                     <Space>
-                      <ShoppingOutlined style={{ color: "#1677ff" }} />
+                      <ShoppingOutlined style={{ color: "#cb1c22" }} />
                       <Text strong>Đơn hàng #{order.id}</Text>
                       <Text type="secondary" style={{ fontSize: 13 }}>
                         <CalendarOutlined style={{ marginRight: 4 }} />
@@ -247,7 +251,7 @@ const MyOrdersPage: React.FC = () => {
                       <Text type="secondary" style={{ marginRight: 8 }}>
                         Tổng tiền:
                       </Text>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: "#d9363e" }}>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: "#cb1c22" }}>
                         {formatPrice(order.total_amount)}
                       </span>
                     </div>

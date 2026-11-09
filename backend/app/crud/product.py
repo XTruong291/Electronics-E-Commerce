@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.utils import generate_slug
 from app.models.category import Category
-from app.models.order import OrderItem
+from app.models.order import Order, OrderItem, OrderStatus
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductUpdate
 
@@ -247,14 +247,47 @@ def update_product(
 
 
 def delete_product(db: Session, product: Product) -> None:
-    order_items_count = (
-        db.query(OrderItem).filter(OrderItem.product_id == product.id).count()
+    # 1. Kiểm tra xem có đơn hàng nào ĐANG HOẠT ĐỘNG (PENDING, CONFIRMED, SHIPPING, DELIVERED) chứa sản phẩm không
+    active_items = (
+        db.query(OrderItem)
+        .join(Order, OrderItem.order_id == Order.id)
+        .filter(
+            OrderItem.product_id == product.id,
+            Order.status != OrderStatus.CANCELLED,
+        )
+        .all()
     )
-    if order_items_count > 0:
+    if active_items:
+        active_order_ids = sorted(list({f"#{it.order_id}" for it in active_items}))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Không thể xóa sản phẩm đã có trong các đơn hàng đã đặt. Hãy chuyển trạng thái sản phẩm sang ngưng bán (is_active=False).",
+            detail=f"Không thể xóa sản phẩm vì đang nằm trong các đơn hàng chưa hủy ({', '.join(active_order_ids)}). Vui lòng xử lý hủy các đơn hàng này hoặc chuyển trạng thái sản phẩm sang ngưng kinh doanh (is_active=False).",
         )
+
+    # 2. Nếu sản phẩm chỉ nằm trong các đơn hàng ĐÃ HỦY (CANCELLED), dọn dẹp các OrderItem đã hủy để cho phép xóa sản phẩm an toàn
+    cancelled_items = (
+        db.query(OrderItem)
+        .join(Order, OrderItem.order_id == Order.id)
+        .filter(
+            OrderItem.product_id == product.id,
+            Order.status == OrderStatus.CANCELLED,
+        )
+        .all()
+    )
+    cancelled_orders = set()
+    for it in cancelled_items:
+        cancelled_orders.add(it.order_id)
+        db.delete(it)
+    db.flush()
+
+    # Dọn dẹp các đơn hàng đã hủy nếu không còn mặt hàng nào bên trong
+    for oid in cancelled_orders:
+        remaining_count = db.query(OrderItem).filter(OrderItem.order_id == oid).count()
+        if remaining_count == 0:
+            empty_order = db.query(Order).filter(Order.id == oid).first()
+            if empty_order:
+                db.delete(empty_order)
+    db.flush()
 
     db.delete(product)
     db.commit()

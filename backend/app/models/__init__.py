@@ -1,4 +1,6 @@
 """SQLAlchemy Models package."""
+from app.models.analytics import UserEvent
+from app.models.article import Article
 from app.models.category import Category
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.product import Product
@@ -15,4 +17,6 @@ __all__ = [
     "Order",
     "OrderItem",
     "OrderStatus",
+    "Article",
+    "UserEvent",
 ]

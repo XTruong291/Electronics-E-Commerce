@@ -24,6 +24,7 @@ import {
   EyeOutlined,
 } from "@ant-design/icons";
 import { getAdminOrders, updateOrderStatus } from "../../api/order.api";
+import { useResponsive } from "../../hooks/useResponsive";
 import type { Order, OrderStatus } from "../../types/order";
 
 const { Title, Text, Paragraph } = Typography;
@@ -51,6 +52,7 @@ const getStatusTag = (status: OrderStatus) => {
 };
 
 const OrdersPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
@@ -166,7 +168,7 @@ const OrdersPage: React.FC = () => {
       key: "total_amount",
       width: 140,
       render: (val: number) => (
-        <span style={{ fontWeight: 700, color: "#d9363e" }}>{formatPrice(val)}</span>
+        <span style={{ fontWeight: 700, color: "#cb1c22" }}>{formatPrice(val)}</span>
       ),
     },
     {
@@ -276,6 +278,7 @@ const OrdersPage: React.FC = () => {
               setPageSize(ps);
             },
           }}
+          scroll={{ x: 800 }}
         />
       </Card>
 
@@ -284,7 +287,7 @@ const OrdersPage: React.FC = () => {
         title={
           selectedOrder ? (
             <Space>
-              <OrderedListOutlined style={{ color: "#1677ff" }} />
+              <OrderedListOutlined style={{ color: "#cb1c22" }} />
               <span>Chi tiết Đơn hàng #{selectedOrder.id}</span>
               {getStatusTag(selectedOrder.status)}
             </Space>
@@ -294,7 +297,7 @@ const OrdersPage: React.FC = () => {
         }
         open={detailModalOpen}
         onCancel={() => setDetailModalOpen(false)}
-        width={700}
+        width={isMobile ? "100%" : 700}
         footer={[
           <Button key="close" onClick={() => setDetailModalOpen(false)}>
             Đóng
@@ -322,7 +325,7 @@ const OrdersPage: React.FC = () => {
         {selectedOrder && (
           <div>
             {/* THÔNG TIN KHÁCH HÀNG & GIAO NHẬN */}
-            <Descriptions bordered size="small" column={2} style={{ marginTop: 12 }}>
+            <Descriptions bordered size="small" column={isMobile ? 1 : 2} style={{ marginTop: 12 }}>
               <Descriptions.Item label="Người nhận">
                 {selectedOrder.recipient_name}
               </Descriptions.Item>
@@ -390,7 +393,7 @@ const OrdersPage: React.FC = () => {
               <Text strong style={{ fontSize: 15 }}>
                 Tổng giá trị đơn:
               </Text>
-              <span style={{ fontSize: 20, fontWeight: 700, color: "#d9363e" }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: "#cb1c22" }}>
                 {formatPrice(selectedOrder.total_amount)}
               </span>
             </div>

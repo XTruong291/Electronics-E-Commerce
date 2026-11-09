@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Row,
   Col,
@@ -30,6 +30,8 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { getProduct } from "../../api/catalog.api";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useResponsive } from "../../hooks/useResponsive";
+import { trackEvent } from "../../utils/tracker";
 import type { Product } from "../../types/catalog";
 
 const { Title, Text } = Typography;
@@ -39,6 +41,7 @@ const formatPrice = (val: number): string => {
 };
 
 const ProductDetailPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
@@ -49,6 +52,11 @@ const ProductDetailPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
+  const trackedProductIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    trackedProductIdRef.current = null;
+  }, [slug]);
 
   useEffect(() => {
     if (!slug) return;
@@ -63,6 +71,19 @@ const ProductDetailPage: React.FC = () => {
           (data.images && data.images.length > 0 ? data.images[0] : "") ||
           "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=500&auto=format&fit=crop&q=60";
         setActiveImage(initialImg);
+
+        // Chống gửi trùng PRODUCT_VIEW do React StrictMode mount 2 lần
+        if (trackedProductIdRef.current !== data.id) {
+          trackedProductIdRef.current = data.id;
+          trackEvent("PRODUCT_VIEW", {
+            product_id: data.id,
+            category_id: data.category_id,
+            metadata_json: {
+              brand: data.brand,
+              price: data.sale_price || data.price,
+            },
+          });
+        }
       } catch (err: unknown) {
         console.error("Lỗi tải chi tiết sản phẩm:", err);
         setErrorMsg("Không tìm thấy sản phẩm hoặc sản phẩm đã ngừng kinh doanh.");
@@ -188,9 +209,9 @@ const ProductDetailPage: React.FC = () => {
           border: "1px solid #e5e7eb",
           background: "#ffffff",
         }}
-        bodyStyle={{ padding: "24px" }}
+        bodyStyle={{ padding: isMobile ? "14px 12px" : "24px" }}
       >
-        <Row gutter={[32, 24]}>
+        <Row gutter={isMobile ? [16, 16] : [32, 24]}>
           {/* CỘT TRÁI: ẢNH CHÍNH & GALLERY */}
           <Col xs={24} md={11}>
             <div
@@ -202,24 +223,25 @@ const ProductDetailPage: React.FC = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                height: 380,
-                padding: 20,
+                height: isMobile ? 280 : 380,
+                padding: isMobile ? 12 : 20,
               }}
             >
               <Image
                 src={activeImage}
                 alt={product.name}
-                style={{ maxHeight: 340, maxWidth: "100%", objectFit: "contain" }}
+                style={{ maxHeight: isMobile ? 250 : 340, maxWidth: "100%", objectFit: "contain" }}
               />
             </div>
 
             {/* Dải Thumbnails selector */}
             {galleryImages.length > 1 && (
               <div
+                className="horizontal-touch-scroll"
                 style={{
                   display: "flex",
-                  gap: 10,
-                  marginTop: 16,
+                  gap: 8,
+                  marginTop: 12,
                   overflowX: "auto",
                   paddingBottom: 4,
                 }}
@@ -229,8 +251,8 @@ const ProductDetailPage: React.FC = () => {
                     key={idx}
                     onClick={() => setActiveImage(img)}
                     style={{
-                      width: 64,
-                      height: 64,
+                      width: isMobile ? 52 : 64,
+                      height: isMobile ? 52 : 64,
                       borderRadius: 8,
                       border: activeImage === img ? "2px solid #cb1c22" : "1px solid #e5e7eb",
                       padding: 4,
@@ -258,7 +280,7 @@ const ProductDetailPage: React.FC = () => {
           {/* CỘT PHẢI: THÔNG TIN CHI TIẾT & MUA HÀNG */}
           <Col xs={24} md={13}>
             {/* Metadata Tags */}
-            <Space size={8} style={{ marginBottom: 8 }}>
+            <Space size={8} wrap style={{ marginBottom: 8 }}>
               <Tag
                 color="#cb1c22"
                 style={{ fontSize: 12, padding: "2px 8px", fontWeight: 700, borderRadius: 4, border: "none" }}
@@ -278,42 +300,42 @@ const ProductDetailPage: React.FC = () => {
               level={3}
               style={{
                 marginTop: 4,
-                marginBottom: 14,
+                marginBottom: 12,
                 lineHeight: 1.35,
                 fontWeight: 800,
-                fontSize: 22,
+                fontSize: isMobile ? 18 : 22,
                 color: "#111827",
               }}
             >
               {product.name}
             </Title>
 
-            {/* Price Box */}
+            {/* Price Box (Đồng bộ chuẩn đỏ XìMiStore & nền tint #fef2f2) */}
             <div
               style={{
-                background: "#fff5f5",
-                padding: "16px 20px",
+                background: "#fef2f2",
+                padding: isMobile ? "12px 14px" : "16px 20px",
                 borderRadius: 10,
-                border: "1px solid #fed7d7",
-                marginBottom: 20,
+                border: "1px solid #fecaca",
+                marginBottom: 16,
               }}
             >
-              <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 28, fontWeight: 800, color: "#d70018" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#cb1c22" }}>
                   {formatPrice(currentPrice)}
                 </span>
                 {hasDiscount && (
                   <>
-                    <Text delete type="secondary" style={{ fontSize: 16 }}>
+                    <Text delete type="secondary" style={{ fontSize: isMobile ? 13 : 16 }}>
                       {formatPrice(product.price)}
                     </Text>
                     <span
                       style={{
-                        background: "#d70018",
+                        background: "#cb1c22",
                         color: "#fff",
                         fontWeight: 700,
-                        fontSize: 12,
-                        padding: "2px 8px",
+                        fontSize: isMobile ? 11 : 12,
+                        padding: "2px 6px",
                         borderRadius: 4,
                       }}
                     >
@@ -322,79 +344,90 @@ const ProductDetailPage: React.FC = () => {
                   </>
                 )}
               </div>
-              <div style={{ marginTop: 6 }}>
-                <Text type="secondary" style={{ fontSize: 12 }}>
+              <div style={{ marginTop: 4 }}>
+                <Text type="secondary" style={{ fontSize: 11 }}>
                   (Giá đã bao gồm 10% thuế VAT và miễn phí giao hàng toàn quốc)
                 </Text>
               </div>
             </div>
 
-            {/* Khung Khuyến mãi & Quyền lợi khách hàng */}
+            {/* Khung Khuyến mãi & Quyền lợi khách hàng (Thiết kế thanh lịch, viền liền, icon chuẩn đỏ) */}
             <div
               style={{
                 borderRadius: 10,
-                background: "#fff8f8",
-                border: "1px dashed #f87171",
-                padding: "14px 18px",
-                marginBottom: 20,
+                background: "#ffffff",
+                border: "1px solid #e5e7eb",
+                overflow: "hidden",
+                marginBottom: 16,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <GiftOutlined style={{ color: "#cb1c22", fontSize: 16 }} />
-                <span style={{ color: "#cb1c22", fontWeight: 700, fontSize: 13, textTransform: "uppercase" }}>
-                  Ưu đãi & Quyền lợi độc quyền
+              <div
+                style={{
+                  background: "#fef2f2",
+                  borderBottom: "1px solid #fecaca",
+                  padding: "8px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <GiftOutlined style={{ color: "#cb1c22", fontSize: 15 }} />
+                <span style={{ color: "#cb1c22", fontWeight: 700, fontSize: 12, textTransform: "uppercase" }}>
+                  Ưu đãi & Quyền lợi độc quyền tại XìMiStore
                 </span>
               </div>
-              <Space direction="vertical" size={6} style={{ width: "100%", fontSize: 13, color: "#374151" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <SafetyCertificateOutlined style={{ color: "#16a34a" }} />
-                  Bảo hành chính hãng 24 tháng tại các trung tâm ủy quyền toàn quốc
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <CarOutlined style={{ color: "#2563eb" }} />
-                  Giao nhanh trong 2 giờ tại nội thành, hỗ trợ kiểm tra hàng trước khi nhận
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <SyncOutlined style={{ color: "#ea580c" }} />
-                  Hư gì đổi nấy trong 30 ngày đầu tiên nếu có lỗi phần cứng từ nhà sản xuất
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <CreditCardOutlined style={{ color: "#7c3aed" }} />
-                  Hỗ trợ trả góp 0% lãi suất qua thẻ tín dụng và công ty tài chính
-                </div>
-              </Space>
+              <div style={{ padding: "12px 14px" }}>
+                <Space direction="vertical" size={6} style={{ width: "100%", fontSize: 12, color: "#374151" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <SafetyCertificateOutlined style={{ color: "#cb1c22" }} />
+                    Bảo hành chính hãng 24 tháng tại các trung tâm ủy quyền toàn quốc
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <CarOutlined style={{ color: "#cb1c22" }} />
+                    Giao nhanh trong 2 giờ tại nội thành, hỗ trợ kiểm tra hàng trước khi nhận
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <SyncOutlined style={{ color: "#cb1c22" }} />
+                    Hư gì đổi nấy trong 30 ngày đầu tiên nếu có lỗi phần cứng từ nhà sản xuất
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <CreditCardOutlined style={{ color: "#cb1c22" }} />
+                    Hỗ trợ trả góp 0% lãi suất qua thẻ tín dụng và công ty tài chính
+                  </div>
+                </Space>
+              </div>
             </div>
 
             {/* Stock status & Quantity Selector */}
-            <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
               <div>
                 {isOutOfStock ? (
-                  <Tag color="error" style={{ fontSize: 13, padding: "3px 10px", borderRadius: 4 }}>
+                  <Tag color="error" style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4 }}>
                     Tạm hết hàng
                   </Tag>
                 ) : (
-                  <Tag color="success" icon={<CheckCircleOutlined />} style={{ fontSize: 13, padding: "3px 10px", borderRadius: 4 }}>
-                    Còn hàng ({product.stock} sản phẩm sẵn có)
+                  <Tag color="success" icon={<CheckCircleOutlined />} style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4 }}>
+                    Còn hàng ({product.stock} sẵn có)
                   </Tag>
                 )}
               </div>
 
               {!isOutOfStock && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#4b5563" }}>Số lượng:</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#4b5563" }}>Số lượng:</span>
                   <InputNumber<number>
                     min={1}
                     max={product.stock}
                     value={quantity}
                     onChange={(val) => setQuantity(val || 1)}
-                    style={{ width: 80, borderRadius: 6 }}
+                    style={{ width: 70, borderRadius: 6 }}
                   />
                 </div>
               )}
             </div>
 
             {/* Dual CTAs (MUA NGAY & THÊM VÀO GIỎ) */}
-            <Row gutter={12}>
+            <Row gutter={isMobile ? 8 : 12}>
               <Col xs={14}>
                 <Button
                   type="primary"
@@ -402,7 +435,7 @@ const ProductDetailPage: React.FC = () => {
                   disabled={isOutOfStock}
                   onClick={handleBuyNow}
                   style={{
-                    height: 52,
+                    height: isMobile ? 46 : 52,
                     background: isOutOfStock ? undefined : "#cb1c22",
                     borderColor: isOutOfStock ? undefined : "#cb1c22",
                     borderRadius: 8,
@@ -413,26 +446,29 @@ const ProductDetailPage: React.FC = () => {
                     lineHeight: 1.2,
                   }}
                 >
-                  <span style={{ fontSize: 16, fontWeight: 800 }}>MUA NGAY</span>
-                  <span style={{ fontSize: 11, fontWeight: 400, opacity: 0.9 }}>
-                    Giao tận nơi hoặc nhận tại shop
-                  </span>
+                  <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800 }}>MUA NGAY</span>
+                  {!isMobile && (
+                    <span style={{ fontSize: 11, fontWeight: 400, opacity: 0.9 }}>
+                      Giao tận nơi hoặc nhận tại shop
+                    </span>
+                  )}
                 </Button>
               </Col>
               <Col xs={10}>
                 <Button
                   block
-                  icon={<ShoppingCartOutlined style={{ fontSize: 18 }} />}
+                  icon={<ShoppingCartOutlined style={{ fontSize: isMobile ? 16 : 18 }} />}
                   disabled={isOutOfStock}
                   onClick={handleAddToCart}
                   style={{
-                    height: 52,
+                    height: isMobile ? 46 : 52,
                     borderRadius: 8,
                     borderColor: "#cb1c22",
                     color: "#cb1c22",
                     fontWeight: 700,
-                    fontSize: 14,
+                    fontSize: isMobile ? 12 : 14,
                     background: "#fff",
+                    padding: isMobile ? "0 6px" : undefined,
                   }}
                 >
                   THÊM VÀO GIỎ
@@ -444,7 +480,7 @@ const ProductDetailPage: React.FC = () => {
       </Card>
 
       {/* 3. LOWER FOLD: 2 CỘT (60% MÔ TẢ ĐÁNH GIÁ & 40% BẢNG THÔNG SỐ KẺ SỌC) */}
-      <Row gutter={[24, 24]}>
+      <Row gutter={isMobile ? [16, 16] : [24, 24]}>
         {/* CỘT TRÁI (60%): BÀI VIẾT ĐÁNH GIÁ CHI TIẾT */}
         <Col xs={24} md={14}>
           <Card
@@ -452,11 +488,11 @@ const ProductDetailPage: React.FC = () => {
             title={
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <ThunderboltOutlined style={{ color: "#cb1c22" }} />
-                <span style={{ fontWeight: 700, fontSize: 16 }}>Đặc điểm nổi bật & Bài viết đánh giá</span>
+                <span style={{ fontWeight: 700, fontSize: isMobile ? 15 : 16 }}>Đặc điểm nổi bật & Đánh giá</span>
               </div>
             }
             style={{ borderRadius: 12, height: "100%", boxShadow: "0 2px 10px rgba(0,0,0,0.03)", border: "1px solid #e5e7eb" }}
-            bodyStyle={{ padding: "20px 24px" }}
+            bodyStyle={{ padding: isMobile ? "14px 12px" : "20px 24px" }}
           >
             {product.description ? (
               <div style={{ whiteSpace: "pre-line", lineHeight: 1.8, fontSize: 14, color: "#374151" }}>
@@ -473,10 +509,10 @@ const ProductDetailPage: React.FC = () => {
           <Card
             bordered={false}
             title={
-              <span style={{ fontWeight: 700, fontSize: 16 }}>Thông số kỹ thuật chi tiết</span>
+              <span style={{ fontWeight: 700, fontSize: isMobile ? 15 : 16 }}>Thông số kỹ thuật chi tiết</span>
             }
             style={{ borderRadius: 12, height: "100%", boxShadow: "0 2px 10px rgba(0,0,0,0.03)", border: "1px solid #e5e7eb" }}
-            bodyStyle={{ padding: "16px" }}
+            bodyStyle={{ padding: isMobile ? "12px 10px" : "16px" }}
           >
             {specEntries.length > 0 ? (
               <table className="zebra-specs-table">

@@ -24,6 +24,7 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import axiosClient from "../../api/axiosClient";
+import { useResponsive } from "../../hooks/useResponsive";
 import { useAuthStore } from "../../store/useAuthStore";
 import type { User, UserRole } from "../../types/auth";
 
@@ -38,6 +39,7 @@ interface UserListApiResult {
 }
 
 const UsersPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -406,6 +408,7 @@ const UsersPage: React.FC = () => {
           },
         }}
         bordered
+        scroll={{ x: 750 }}
       />
 
       <Modal
@@ -416,6 +419,7 @@ const UsersPage: React.FC = () => {
         onCancel={() => setRoleModalVisible(false)}
         okText="Lưu thay đổi"
         cancelText="Hủy"
+        width={isMobile ? "100%" : 520}
       >
         <Form layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item label="Chọn vai trò mới:">
