@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.security import create_access_token
-from app.crud.analytics import build_store_grounding_context
+from app.crud.analytics import build_store_grounding_context, find_best_matching_products
 from app.models.analytics import UserEvent
 from app.models.product import Product
 from app.models.user import User
@@ -279,6 +279,49 @@ def test_build_store_grounding_context(db_session):
     assert "dynamic_retrieval" in context
     matched = context["dynamic_retrieval"]["matched_products"]
     assert isinstance(matched, list)
-    if matched:
-        assert "iPhone" in matched[0]["name"] or "16" in matched[0]["name"]
+    assert len(matched) > 0
+    assert "iPhone 16 Pro Max" in matched[0]["name"]
+    assert matched[0]["sku"] == "PHN-AP-IP16PM-256"
+
+
+def test_find_best_matching_products_relevance_scoring():
+    """Kiểm tra thuật toán Relevance Scoring ưu tiên chính xác đời máy iPhone 16 thay vì iPhone 15."""
+    sample_list = [
+        {"name": "iPhone 15 Pro Max 256GB Titan Xanh", "sku": "PHN-AP-IP15PM-256", "brand": "Apple"},
+        {"name": "iPhone 16 Pro Max 256GB Titan Sa Mạc", "sku": "PHN-AP-IP16PM-256", "brand": "Apple"},
+        {"name": "Samsung Galaxy S24 Ultra 5G", "sku": "PHN-SS-S24U-256", "brand": "Samsung"},
+    ]
+    matched = find_best_matching_products("iphone 16 pro max giá bao nhiêu", sample_list)
+    assert len(matched) >= 1
+    assert matched[0]["name"] == "iPhone 16 Pro Max 256GB Titan Sa Mạc"
+    assert matched[0]["sku"] == "PHN-AP-IP16PM-256"
+
+
+def test_admin_ai_chat_iphone_16_pro_max_accuracy(client: TestClient, admin_headers):
+    """Kiểm tra API /ai-chat trả lời chính xác iPhone 16 Pro Max và mã PHN-AP-IP16PM-256 khi hỏi giá."""
+    res = client.post(
+        "/api/v1/admin/analytics/ai-chat",
+        headers=admin_headers,
+        json={"question": "iphone 16 pro max giá bao nhiêu", "days": 30},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "iPhone 16 Pro Max" in data["answer"]
+    assert "PHN-AP-IP16PM-256" in data["answer"]
+    assert "iPhone 15 Pro Max" not in data["answer"]
+
+
+def test_admin_ai_insights_caching(client: TestClient, admin_headers):
+    """Kiểm tra In-Memory Cache (TTL 5 phút) lưu giữ kết quả ai-insights giữa các lần gọi liên tiếp."""
+    res1 = client.post("/api/v1/admin/analytics/ai-insights?days=30", headers=admin_headers)
+    assert res1.status_code == 200
+    data1 = res1.json()
+
+    # Lần gọi thứ 2 ngay sau đó phải trả về cùng nội dung từ cache tức thời
+    res2 = client.post("/api/v1/admin/analytics/ai-insights?days=30", headers=admin_headers)
+    assert res2.status_code == 200
+    data2 = res2.json()
+
+    assert data1["executive_summary"] == data2["executive_summary"]
+    assert data1["actionable_recommendations"] == data2["actionable_recommendations"]
 

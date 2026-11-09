@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import re
 from typing import Any, Dict, List, Optional
 from sqlalchemy import case, desc, func
 from sqlalchemy.orm import Session
@@ -433,6 +434,103 @@ def get_analytics_overview(db: Session, days: int = 30) -> AnalyticsOverviewResp
     )
 
 
+VIETNAMESE_STOP_WORDS = {
+    "giá", "gia", "bao", "nhiêu", "nhieu", "còn", "con", "hàng", "hang",
+    "không", "khong", "máy", "may", "chiếc", "chiec", "cho", "hỏi", "hoi",
+    "tồn", "ton", "kho", "bán", "ban", "nhất", "nhat", "là", "la", "gì", "gi",
+    "có", "co", "được", "duoc", "của", "cua", "nào", "nao", "sản", "phẩm",
+    "san", "pham", "thiết", "bị", "thiet", "bi", "shop", "cửa", "tiệm",
+    "tiem", "xin", "vui", "lòng", "long", "ad", "admin", "bạn", "ban", "ạ", "a",
+    "nhé", "nhe", "ơi", "oi", "em", "anh", "chị", "chi"
+}
+
+
+def _extract_prod_info(item: Any):
+    """Trích xuất linh hoạt (raw_item, Product_obj, name, sku, brand, category_name) từ nhiều kiểu dữ liệu."""
+    if hasattr(item, "Product"):
+        p = item.Product
+        c_name = getattr(item, "category_name", "")
+        return item, p, getattr(p, "name", ""), getattr(p, "sku", "") or "", getattr(p, "brand", "") or "", c_name
+    elif hasattr(item, "name"):
+        return item, item, getattr(item, "name", ""), getattr(item, "sku", "") or "", getattr(item, "brand", "") or "", ""
+    elif isinstance(item, dict):
+        return item, item, item.get("name", ""), item.get("sku", "") or "", item.get("brand", "") or "", item.get("category", "")
+    elif isinstance(item, tuple) and len(item) > 0:
+        p = item[0]
+        c_name = item[1] if len(item) > 1 else ""
+        return item, p, getattr(p, "name", ""), getattr(p, "sku", "") or "", getattr(p, "brand", "") or "", c_name
+    return item, item, "", "", "", ""
+
+
+def find_best_matching_products(
+    question: str,
+    products_list: List[Any],
+    limit: int = 3,
+) -> List[Any]:
+    """Tìm kiếm và chấm điểm độ khớp (Relevance Scoring) giữa câu hỏi và danh sách sản phẩm.
+    
+    Quy tắc chấm điểm:
+    1. Loại bỏ các từ dừng chung chung không mang tính định danh (stop words).
+    2. Thưởng điểm cao (+100 điểm) nếu tên hoặc SKU chứa nguyên cụm thiết bị đã lọc.
+    3. Trọng số đặc biệt cho thế hệ/mã số Model (chứa chữ số như '16', '15', 'm3', 's24'):
+       - Khớp với sản phẩm/SKU: +30 điểm/từ.
+       - Câu hỏi có số đời máy nhưng sản phẩm KHÔNG có từ đó: phạt -50 điểm.
+    4. Khớp các từ chữ cái thông thường ('iphone', 'pro', 'max', 'laptop'...): +10 điểm/từ.
+    5. Sắp xếp theo tổng điểm giảm dần (score DESC), chỉ lấy sản phẩm có điểm dương (> 0).
+    """
+    if not question or not products_list:
+        return []
+
+    q_clean = re.sub(r"[^\w\s]", " ", question.lower())
+    all_tokens = [t.strip() for t in q_clean.split() if t.strip()]
+    meaningful_tokens = [t for t in all_tokens if t not in VIETNAMESE_STOP_WORDS]
+    if not meaningful_tokens:
+        meaningful_tokens = all_tokens
+
+    cleaned_phrase = " ".join(meaningful_tokens).strip()
+
+    # Nhận diện các token định danh model/thế hệ (có chứa ít nhất 1 chữ số)
+    model_tokens = [t for t in meaningful_tokens if any(c.isdigit() for c in t)]
+
+    # Các từ chữ cái thông thường độ dài >= 2
+    regular_tokens = [t for t in meaningful_tokens if not any(c.isdigit() for c in t) and len(t) >= 2]
+
+    scored = []
+    for item in products_list:
+        _, _, name, sku, brand, _ = _extract_prod_info(item)
+        if not name:
+            continue
+
+        target_text = f"{name} {sku} {brand}".lower()
+        target_tokens = set(re.sub(r"[^\w\s]", " ", target_text).split())
+
+        score = 0
+
+        # Thưởng +100 điểm nếu chứa nguyên cụm từ khóa thiết bị
+        if cleaned_phrase and len(cleaned_phrase) >= 4 and (
+            cleaned_phrase in target_text or cleaned_phrase in name.lower() or (sku and cleaned_phrase in sku.lower())
+        ):
+            score += 100
+
+        # Trọng số cho token thế hệ / model
+        for m_tok in model_tokens:
+            if m_tok in target_tokens or m_tok in target_text or (sku and m_tok in sku.lower()):
+                score += 30
+            else:
+                score -= 50  # Phạt nặng nếu câu hỏi chỉ định model cụ thể mà máy không có
+
+        # Trọng số cho từ khóa chữ cái thông thường
+        for r_tok in regular_tokens:
+            if r_tok in target_tokens or (len(r_tok) >= 3 and r_tok in target_text):
+                score += 10
+
+        if score > 0:
+            scored.append((score, item))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [x[1] for x in scored[:limit]]
+
+
 def build_store_grounding_context(
     db: Session,
     days: int = 30,
@@ -519,30 +617,15 @@ def build_store_grounding_context(
     for p_tuple in all_prods:
         p, c_name = p_tuple.Product, p_tuple.category_name
         p_id = p.id
-        days_in_stock = days_in_stock_dict.get(p_id)
-        if days_in_stock is None:
-            if p.created_at:
-                p_created = (
-                    p.created_at.replace(tzinfo=None)
-                    if hasattr(p.created_at, "replace")
-                    else p.created_at
-                )
-                days_in_stock = max(0, (now_naive - p_created).days)
-            else:
-                days_in_stock = 0
-
         product_catalog_summary.append({
-            "id": p_id,
-            "name": p.name,
             "sku": p.sku,
+            "name": p.name,
             "brand": p.brand,
-            "category": c_name,
             "price": int(p.price),
             "sale_price": int(p.sale_price) if p.sale_price else None,
             "stock": int(p.stock or 0),
-            "units_sold": all_sold_dict.get(p_id, 0),
+            "sold": all_sold_dict.get(p_id, 0),
             "views": all_views_dict.get(p_id, 0),
-            "days_in_stock": days_in_stock,
         })
 
     # 4. TẦNG DYNAMIC QUERY RETRIEVAL THEO USER QUESTION
@@ -554,66 +637,51 @@ def build_store_grounding_context(
     if user_question:
         q_clean = user_question.lower()
 
-        # A. Kiểm tra nhắc tới sản phẩm, SKU hoặc thương hiệu cụ thể
-        for p_tuple in all_prods:
-            p, c_name = p_tuple.Product, p_tuple.category_name
-            p_name_lower = p.name.lower()
-            p_sku_lower = (p.sku or "").lower()
-            p_brand_lower = (p.brand or "").lower()
+        # A. Kiểm tra nhắc tới sản phẩm, SKU hoặc thương hiệu cụ thể dùng Relevance Scoring
+        best_prods = find_best_matching_products(user_question, all_prods, limit=3)
+        for idx, p_tuple in enumerate(best_prods):
+            _, p, p_name, p_sku, p_brand, c_name = _extract_prod_info(p_tuple)
+            matched_entities.append(p.name)
+            # Lấy 5 đơn hàng gần nhất chứa sản phẩm này
+            recent_sales_raw = (
+                db.query(OrderItem, Order.created_at, Order.status)
+                .join(Order, OrderItem.order_id == Order.id)
+                .filter(OrderItem.product_id == p.id)
+                .order_by(desc(Order.created_at))
+                .limit(5)
+                .all()
+            )
+            recent_sales = [
+                {
+                    "order_id": itm.OrderItem.order_id,
+                    "quantity": itm.OrderItem.quantity,
+                    "unit_price": int(itm.OrderItem.unit_price),
+                    "status": (
+                        itm.status.value
+                        if hasattr(itm.status, "value")
+                        else str(itm.status)
+                    ),
+                    "created_at": str(itm.created_at)[:19] if itm.created_at else None,
+                }
+                for itm in recent_sales_raw
+            ]
 
-            is_match = False
-            if p_sku_lower and p_sku_lower in q_clean:
-                is_match = True
-            elif p_name_lower in q_clean:
-                is_match = True
-            elif p_brand_lower and len(p_brand_lower) >= 3 and p_brand_lower in q_clean:
-                is_match = True
-            else:
-                # Kiểm tra các từ khóa nhận dạng tiêu biểu
-                for part in p_name_lower.split():
-                    if len(part) >= 4 and part in q_clean:
-                        is_match = True
-                        break
+            # Chỉ gửi chi tiết specifications cho top 3 sản phẩm khớp nhất
+            specs = p.specifications or {} if idx < 3 else {}
 
-            if is_match and len(matched_products) < 5:
-                matched_entities.append(p.name)
-                # Lấy 5 đơn hàng gần nhất chứa sản phẩm này
-                recent_sales_raw = (
-                    db.query(OrderItem, Order.created_at, Order.status)
-                    .join(Order, OrderItem.order_id == Order.id)
-                    .filter(OrderItem.product_id == p.id)
-                    .order_by(desc(Order.created_at))
-                    .limit(5)
-                    .all()
-                )
-                recent_sales = [
-                    {
-                        "order_id": itm.OrderItem.order_id,
-                        "quantity": itm.OrderItem.quantity,
-                        "unit_price": int(itm.OrderItem.unit_price),
-                        "status": (
-                            itm.status.value
-                            if hasattr(itm.status, "value")
-                            else str(itm.status)
-                        ),
-                        "created_at": str(itm.created_at)[:19] if itm.created_at else None,
-                    }
-                    for itm in recent_sales_raw
-                ]
-
-                matched_products.append({
-                    "id": p.id,
-                    "name": p.name,
-                    "sku": p.sku,
-                    "brand": p.brand,
-                    "category": c_name,
-                    "price": int(p.price),
-                    "sale_price": int(p.sale_price) if p.sale_price else None,
-                    "stock": int(p.stock or 0),
-                    "specifications": p.specifications or {},
-                    "description": (p.description or "")[:200],
-                    "recent_orders_sample": recent_sales,
-                })
+            matched_products.append({
+                "id": p.id,
+                "name": p.name,
+                "sku": p.sku,
+                "brand": p.brand,
+                "category": c_name,
+                "price": int(p.price),
+                "sale_price": int(p.sale_price) if p.sale_price else None,
+                "stock": int(p.stock or 0),
+                "specifications": specs,
+                "description": (p.description or "")[:150],
+                "recent_orders_sample": recent_sales,
+            })
 
         # B. Kiểm tra nhắc tới Đơn hàng, Hủy đơn, Vận chuyển, Khách hàng
         order_triggers = [

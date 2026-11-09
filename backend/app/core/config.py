@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # Google Gemini AI Insights
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash-lite"
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
 
     model_config = SettingsConfigDict(
         env_file=(str(ENV_FILE), ".env"),

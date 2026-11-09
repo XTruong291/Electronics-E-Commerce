@@ -67,13 +67,13 @@ def get_admin_ai_insights(
 @router.post(
     "/admin/analytics/ai-chat",
     response_model=AdminAIChatResponse,
-    summary="Hỏi đáp tương tác đa lượt với Gemini Store Copilot (Staff/Admin)",
+    summary="Hỏi đáp tương tác đa lượt với Ximi AI (Staff/Admin)",
 )
 def admin_ai_chat(
     payload: AdminAIChatRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles([UserRole.STAFF, UserRole.ADMIN])),
 ):
-    """Truy xuất dữ liệu MySQL theo ngữ cảnh và trao đổi đa lượt với Gemini Store Copilot."""
+    """Truy xuất dữ liệu MySQL theo ngữ cảnh và trao đổi đa lượt với Ximi AI."""
     return chat_with_store_advisor(db=db, request=payload)
 

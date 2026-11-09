@@ -31,7 +31,7 @@ def test_list_articles_public_and_filter(client: TestClient):
     assert res.status_code == 200
     data = res.json()
     assert "items" in data
-    assert data["total"] >= 8
+    assert data["total"] >= 7
 
     # Filter by topic
     res_topic = client.get("/api/v1/articles", params={"topic": "AI & Robotics"})

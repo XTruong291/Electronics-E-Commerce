@@ -252,6 +252,8 @@ const DashboardPage: React.FC = () => {
   const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>(defaultPrompts);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const inFlightInsightsDaysRef = useRef<number | null>(null);
+  const lastFetchedInsightsDaysRef = useRef<number | null>(null);
 
   // Requirement 3: Internal Scroll Container only without page jump
   useEffect(() => {
@@ -344,23 +346,41 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const handleFetchAiInsights = async () => {
+    if (inFlightInsightsDaysRef.current === days) return;
     setAiLoading(true);
+    inFlightInsightsDaysRef.current = days;
     try {
       const data = await getGeminiInsights(days);
       setInsights(data);
+      lastFetchedInsightsDaysRef.current = days;
     } catch (err) {
       console.error("Lỗi nạp Gemini AI Insights:", err);
     } finally {
+      inFlightInsightsDaysRef.current = null;
       setAiLoading(false);
     }
   };
 
   useEffect(() => {
     fetchStats(days);
-    // Tự động nạp AI insights một lần theo số ngày
+
+    // Chống bắn đúp 2 request do React StrictMode hoặc đổi days
+    if (inFlightInsightsDaysRef.current === days || lastFetchedInsightsDaysRef.current === days) {
+      return;
+    }
+
+    inFlightInsightsDaysRef.current = days;
     getGeminiInsights(days)
-      .then((res) => setInsights(res))
-      .catch(() => null);
+      .then((res) => {
+        setInsights(res);
+        lastFetchedInsightsDaysRef.current = days;
+      })
+      .catch((err) => {
+        console.error("Lỗi nạp Gemini AI Insights:", err);
+      })
+      .finally(() => {
+        inFlightInsightsDaysRef.current = null;
+      });
   }, [days, fetchStats]);
 
   // Derived metrics
