@@ -37,6 +37,66 @@ const formatPrice = (val: number): string => {
   return `${Number(val || 0).toLocaleString("vi-VN")} ₫`;
 };
 
+// Các từ khóa thông số kỹ thuật không cần hiển thị trên micro-pills của Card
+const IGNORED_SPEC_KEYS = [
+  "bảo hành",
+  "bao hanh",
+  "mô tả",
+  "mo ta",
+  "hộp",
+  "hop",
+  "phụ kiện",
+  "phu kien",
+  "xuất xứ",
+  "xuat xu",
+  "năm ra mắt",
+  "nam ra mat",
+];
+
+// Helper lọc & rút gọn thông minh tối đa 2-3 thông số ngắn gọn (<= 26 ký tự)
+const getCardMicroSpecs = (specifications?: Record<string, any>): string[] => {
+  if (!specifications || typeof specifications !== "object") return [];
+  const list: string[] = [];
+
+  for (const [key, rawVal] of Object.entries(specifications)) {
+    if (!rawVal) continue;
+    const cleanKey = key.trim().toLowerCase();
+    if (IGNORED_SPEC_KEYS.some((k) => cleanKey.includes(k))) continue;
+
+    let val = String(rawVal).trim();
+    if (!val) continue;
+
+    // Rút gọn mệnh đề trước dấu ngoặc đơn nếu có (ví dụ số nhân/luồng hoặc độ phân giải)
+    const parenIdx = val.indexOf("(");
+    if (parenIdx >= 4) {
+      val = val.substring(0, parenIdx).trim();
+    }
+
+    // Rút gọn mệnh đề trước dấu phẩy nếu chuỗi quá dài (> 26 ký tự)
+    const commaIdx = val.indexOf(",");
+    if (commaIdx >= 4 && val.length > 26) {
+      val = val.substring(0, commaIdx).trim();
+    }
+
+    // Chuẩn hóa câu chữ mô tả dài ở các dòng phụ kiện/tai nghe
+    val = val
+      .replace(/^Driver dynamic do Apple thiết kế.*/i, "Driver Apple Dynamic")
+      .replace(/^2 chip Apple H1 riêng biệt.*/i, "Chip Apple H1 (x2)")
+      .replace(/thế hệ mới/i, "")
+      .trim();
+
+    // Khống chế độ dài tối đa 26 ký tự kèm dấu '...'
+    if (val.length > 26) {
+      val = val.slice(0, 23).trim() + "...";
+    }
+
+    list.push(val);
+  }
+
+  // Lấy tối đa 2-3 thông số đẹp mắt nhất
+  return list.slice(0, 3);
+};
+
 export interface HeroBannerItem {
   id: number;
   image: string;
@@ -649,9 +709,8 @@ const HomePage: React.FC = () => {
 
               const isOutOfStock = product.stock <= 0;
 
-              // Rút trích 2-3 thông số kỹ thuật đặc trưng
-              const specs = product.specifications || {};
-              const specKeys = Object.keys(specs).slice(0, 3);
+              // Rút trích 2-3 thông số kỹ thuật đặc trưng ngắn gọn (<= 26 ký tự)
+              const microSpecs = getCardMicroSpecs(product.specifications);
 
               return (
                 <Col xs={12} sm={8} md={6} lg={6} key={product.id}>
@@ -669,9 +728,11 @@ const HomePage: React.FC = () => {
                       padding: isMobile ? "8px 8px 10px" : 14,
                       cursor: "pointer",
                       position: "relative",
+                      overflow: "hidden",
+                      minWidth: 0,
                     }}
                   >
-                    <div>
+                    <div style={{ minWidth: 0, width: "100%", overflow: "hidden" }}>
                       {/* Top Badges Row: Giảm X% & Trả góp 0% */}
                       <div
                         style={{
@@ -790,21 +851,39 @@ const HomePage: React.FC = () => {
                       </Tooltip>
 
                       {/* Tech Specs Micro-Chips (Hidden on mobile to preserve equal card heights) */}
-                      {!isMobile && specKeys.length > 0 && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
-                          {specKeys.map((key) => (
+                      {!isMobile && microSpecs.length > 0 && (
+                        <div
+                          className="product-specs-container"
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 4,
+                            marginBottom: 12,
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {microSpecs.map((spec, idx) => (
                             <span
-                              key={key}
+                              key={idx}
+                              title={spec}
+                              className="product-spec-pill"
                               style={{
                                 background: "#f3f4f6",
                                 color: "#4b5563",
                                 fontSize: 11,
                                 padding: "2px 6px",
                                 borderRadius: 4,
+                                display: "inline-block",
+                                maxWidth: "100%",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
+                                verticalAlign: "bottom",
+                                boxSizing: "border-box",
                               }}
                             >
-                              {String(specs[key])}
+                              {spec}
                             </span>
                           ))}
                         </div>

@@ -31,6 +31,8 @@ body {
 /* Custom transitions and hover polish */
 .product-card-hover {
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  min-width: 0;
 }
 
 .product-card-hover:hover {
@@ -44,6 +46,25 @@ body {
 
 .product-card-img {
   transition: transform 0.25s ease;
+}
+
+/* Micro-pills container & pill styling */
+.product-specs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.product-spec-pill {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  box-sizing: border-box;
 }
 
 /* Smooth horizontal touch scroll with hidden scrollbar */
