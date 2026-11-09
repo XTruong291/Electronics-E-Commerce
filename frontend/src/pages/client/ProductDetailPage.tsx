@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Row,
   Col,
@@ -25,9 +25,10 @@ import {
   CarOutlined,
   SyncOutlined,
   CreditCardOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getProduct } from "../../api/catalog.api";
+import { getProduct, recordProductView } from "../../api/catalog.api";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import type { Product } from "../../types/catalog";
@@ -49,6 +50,7 @@ const ProductDetailPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
+  const recordedSlugRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -63,6 +65,18 @@ const ProductDetailPage: React.FC = () => {
           (data.images && data.images.length > 0 ? data.images[0] : "") ||
           "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=500&auto=format&fit=crop&q=60";
         setActiveImage(initialImg);
+
+        // Automatically record genuine product view on visit (debounces duplicate render on same component mount)
+        if (recordedSlugRef.current !== slug) {
+          recordedSlugRef.current = slug;
+          recordProductView(slug)
+            .then((res) => {
+              setProduct((prev) => (prev && prev.id === res.product_id ? { ...prev, view_count: res.view_count } : prev));
+            })
+            .catch((err) => {
+              console.error("Lỗi tự động ghi nhận lượt xem:", err);
+            });
+        }
       } catch (err: unknown) {
         console.error("Lỗi tải chi tiết sản phẩm:", err);
         setErrorMsg("Không tìm thấy sản phẩm hoặc sản phẩm đã ngừng kinh doanh.");
@@ -258,7 +272,7 @@ const ProductDetailPage: React.FC = () => {
           {/* CỘT PHẢI: THÔNG TIN CHI TIẾT & MUA HÀNG */}
           <Col xs={24} md={13}>
             {/* Metadata Tags */}
-            <Space size={8} style={{ marginBottom: 8 }}>
+            <Space size={8} style={{ marginBottom: 8, flexWrap: "wrap" }}>
               <Tag
                 color="#cb1c22"
                 style={{ fontSize: 12, padding: "2px 8px", fontWeight: 700, borderRadius: 4, border: "none" }}
@@ -267,6 +281,19 @@ const ProductDetailPage: React.FC = () => {
               </Tag>
               <Tag style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "#f3f4f6", border: "none" }}>
                 SKU: {product.sku}
+              </Tag>
+              <Tag
+                icon={<EyeOutlined />}
+                style={{
+                  fontSize: 12,
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  borderColor: "#bfdbfe",
+                }}
+              >
+                {(product.view_count || 0).toLocaleString("vi-VN")} lượt xem
               </Tag>
               <span style={{ fontSize: 13, color: "#f59e0b", display: "flex", alignItems: "center", gap: 4 }}>
                 <StarFilled /> 5.0 <span style={{ color: "#9ca3af" }}>(120+ lượt đánh giá)</span>

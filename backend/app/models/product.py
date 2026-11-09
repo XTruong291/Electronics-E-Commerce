@@ -40,6 +40,7 @@ class Product(Base):
     images = Column(JSON, default=list, nullable=False)
     specifications = Column(JSON, default=dict, nullable=False)
     description = Column(Text, nullable=True)
+    view_count = Column(Integer, default=0, nullable=False, index=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(
@@ -52,4 +53,28 @@ class Product(Base):
     # Relationships
     category = relationship("Category", back_populates="products")
     order_items = relationship("OrderItem", back_populates="product")
+    views = relationship("ProductView", back_populates="product", cascade="all, delete-orphan")
+
+
+class ProductView(Base):
+    __tablename__ = "product_views"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(
+        Integer,
+        ForeignKey("products.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    viewed_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+    # Relationships
+    product = relationship("Product", back_populates="views")
+    user = relationship("User")
 

@@ -30,6 +30,7 @@ import {
   UploadOutlined,
   MinusCircleOutlined,
   SearchOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import type { UploadProps } from "antd";
 import {
@@ -418,6 +419,19 @@ const ProductsPage: React.FC = () => {
         }
         return <Text>{stock} cái</Text>;
       },
+    },
+    {
+      title: "Lượt xem",
+      dataIndex: "view_count",
+      key: "view_count",
+      width: 110,
+      sorter: (a: Product, b: Product) => (a.view_count || 0) - (b.view_count || 0),
+      render: (views?: number) => (
+        <span style={{ fontWeight: 600, color: "#1d4ed8" }}>
+          <EyeOutlined style={{ marginRight: 4 }} />
+          {(views || 0).toLocaleString("vi-VN")}
+        </span>
+      ),
     },
     {
       title: "Trạng thái",
