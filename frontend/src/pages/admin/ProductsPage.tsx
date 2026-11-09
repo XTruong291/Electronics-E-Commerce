@@ -43,6 +43,7 @@ import {
   getCategories,
   uploadProductImage,
 } from "../../api/catalog.api";
+import { useResponsive } from "../../hooks/useResponsive";
 import type {
   Category,
   Product,
@@ -90,6 +91,7 @@ const COMMON_SPEC_SUGGESTIONS = [
 ];
 
 const ProductsPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -589,17 +591,18 @@ const ProductsPage: React.FC = () => {
             },
           }}
           bordered
+          scroll={{ x: 1000 }}
         />
       </Card>
 
-      {/* Product Drawer (Width 820px) */}
+      {/* Product Drawer (Width 820px or 100% on mobile) */}
       <Drawer
         title={
           editingProduct
             ? `Chỉnh sửa sản phẩm: ${editingProduct.name}`
             : "Thêm sản phẩm mới"
         }
-        width={820}
+        width={isMobile ? "100%" : 820}
         open={drawerOpen}
         onClose={handleCloseDrawer}
         destroyOnClose

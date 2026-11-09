@@ -13,6 +13,8 @@ import {
   Empty,
   Input,
   message,
+  Row,
+  Col,
 } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -43,6 +45,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useCartStore } from "../store/useCartStore";
 import { getCategories } from "../api/catalog.api";
 import { trackEvent } from "../utils/tracker";
+import { useResponsive } from "../hooks/useResponsive";
 import type { Category } from "../types/catalog";
 
 const { Header, Content, Footer } = Layout;
@@ -53,6 +56,7 @@ const formatPrice = (val: number): string => {
 };
 
 const StoreLayout: React.FC = () => {
+  const { isMobile } = useResponsive();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -175,239 +179,380 @@ const StoreLayout: React.FC = () => {
           top: 0,
           zIndex: 1000,
           width: "100%",
-          height: 64,
+          height: isMobile ? "auto" : 64,
           lineHeight: "normal",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
           background: "#cb1c22",
-          padding: "0 20px",
+          padding: isMobile ? "8px 12px 10px" : "0 20px",
           boxShadow: "0 2px 10px rgba(0, 0, 0, 0.12)",
         }}
       >
-        <div
-          style={{
-            maxWidth: 1240,
-            width: "100%",
-            height: "100%",
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            lineHeight: "normal",
-          }}
-        >
-          {/* Brand Logo - XìMiStore */}
-          <Link
-            to="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              textDecoration: "none",
-              color: "#fff",
-              flexShrink: 0,
-              height: 40,
-              lineHeight: 1,
-            }}
-          >
+        {isMobile ? (
+          /* Mobile 2-Row Header */
+          <div style={{ maxWidth: 1240, width: "100%", margin: "0 auto" }}>
+            {/* Row 1: Logo + User/Cart utilities */}
             <div
               style={{
-                background: "#fff",
-                borderRadius: "50%",
-                width: 36,
-                height: 36,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                justifyContent: "space-between",
+                width: "100%",
+                height: 44,
+                marginBottom: 6,
               }}
             >
-              <ThunderboltFilled style={{ fontSize: 20, color: "#cb1c22" }} />
+              {/* Brand Logo */}
+              <Link
+                to="/"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  textDecoration: "none",
+                  color: "#fff",
+                }}
+              >
+                <div
+                  style={{
+                    background: "#fff",
+                    borderRadius: "50%",
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <ThunderboltFilled style={{ fontSize: 18, color: "#cb1c22" }} />
+                </div>
+                <span
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 800,
+                    letterSpacing: -0.5,
+                    color: "#fff",
+                    lineHeight: 1,
+                  }}
+                >
+                  XìMiStore
+                </span>
+              </Link>
+
+              {/* Right: Cart & User */}
+              <Space size={10} align="center">
+                {/* Shopping Cart Pill Button */}
+                <div
+                  onClick={() => setCartOpen(true)}
+                  style={{
+                    background: "rgba(255,255,255,0.18)",
+                    border: "1px solid rgba(255,255,255,0.25)",
+                    borderRadius: 16,
+                    padding: "4px 10px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    cursor: "pointer",
+                    color: "#fff",
+                  }}
+                >
+                  <Badge
+                    count={totalItems}
+                    overflowCount={99}
+                    size="small"
+                    color="#fff"
+                    style={{ color: "#cb1c22", fontWeight: 700 }}
+                  >
+                    <ShoppingCartOutlined style={{ fontSize: 16, color: "#fff" }} />
+                  </Badge>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>Giỏ</span>
+                </div>
+
+                {user ? (
+                  <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
+                    <Avatar
+                      size={32}
+                      src={user.avatar_url}
+                      icon={!user.avatar_url && <UserOutlined />}
+                      style={{ backgroundColor: "#ffffff", color: "#cb1c22", cursor: "pointer" }}
+                    />
+                  </Dropdown>
+                ) : (
+                  <Link to="/login">
+                    <Button
+                      size="small"
+                      style={{
+                        background: "#fff",
+                        color: "#cb1c22",
+                        fontWeight: 600,
+                        fontSize: 12,
+                        borderRadius: 14,
+                        border: "none",
+                        padding: "0 10px",
+                        height: 28,
+                      }}
+                    >
+                      Đăng nhập
+                    </Button>
+                  </Link>
+                )}
+              </Space>
             </div>
-            <div
+
+            {/* Row 2: Full-width search bar */}
+            <div style={{ width: "100%" }}>
+              <Input
+                placeholder="Bạn cần tìm laptop, điện thoại, phụ kiện gì?..."
+                allowClear
+                value={headerSearch}
+                onChange={(e) => setHeaderSearch(e.target.value)}
+                onPressEnter={handleSearchSubmit}
+                suffix={
+                  <Button
+                    type="text"
+                    shape="circle"
+                    size="small"
+                    icon={<SearchOutlined style={{ color: "#cb1c22" }} />}
+                    onClick={handleSearchSubmit}
+                  />
+                }
+                style={{
+                  borderRadius: 18,
+                  height: 36,
+                  background: "#ffffff",
+                  border: "none",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
+                  fontSize: 13,
+                  width: "100%",
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          /* Desktop Single-Row Header */
+          <div
+            style={{
+              maxWidth: 1240,
+              width: "100%",
+              height: "100%",
+              margin: "0 auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              lineHeight: "normal",
+            }}
+          >
+            {/* Brand Logo - XìMiStore */}
+            <Link
+              to="/"
               style={{
                 display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
+                alignItems: "center",
+                gap: 10,
+                textDecoration: "none",
+                color: "#fff",
+                flexShrink: 0,
+                height: 40,
                 lineHeight: 1,
               }}
             >
-              <span
+              <div
                 style={{
-                  fontSize: 20,
-                  fontWeight: 800,
-                  letterSpacing: -0.5,
-                  color: "#fff",
-                  display: "block",
-                  lineHeight: 1.1,
-                  margin: 0,
-                  padding: 0,
+                  background: "#fff",
+                  borderRadius: "50%",
+                  width: 36,
+                  height: 36,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                 }}
               >
-                XìMiStore
-              </span>
-              <span
-                className="header-subtext"
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: "rgba(255,255,255,0.9)",
-                  letterSpacing: 1.2,
-                  textTransform: "uppercase",
-                  display: "block",
-                  lineHeight: 1,
-                  marginTop: 3,
-                  margin: 0,
-                  padding: 0,
-                }}
-              >
-                Thiết Bị Công Nghệ
-              </span>
-            </div>
-          </Link>
-
-          {/* Prominent Search Bar */}
-          <div style={{ flex: 1, maxWidth: 500, margin: "0 12px" }}>
-            <Input
-              placeholder="Bạn cần tìm laptop, điện thoại, phụ kiện gì?..."
-              allowClear
-              value={headerSearch}
-              onChange={(e) => setHeaderSearch(e.target.value)}
-              onPressEnter={handleSearchSubmit}
-              suffix={
-                <Button
-                  type="text"
-                  shape="circle"
-                  icon={<SearchOutlined style={{ color: "#cb1c22" }} />}
-                  onClick={handleSearchSubmit}
-                />
-              }
-              style={{
-                borderRadius: 20,
-                height: 38,
-                background: "#ffffff",
-                border: "none",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
-                fontSize: 13,
-              }}
-            />
-          </div>
-
-          {/* Right utility items */}
-          <Space size={16} align="center" style={{ flexShrink: 0 }}>
-            {/* Hotline */}
-            <div
-              className="header-hotline"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                color: "#fff",
-                fontSize: 13,
-                cursor: "pointer",
-              }}
-              onClick={() => window.open("tel:18006601")}
-            >
-              <PhoneOutlined style={{ fontSize: 16 }} />
-              <div style={{ lineHeight: "14px" }}>
-                <span style={{ fontSize: 11, opacity: 0.85, display: "block" }}>Hotline 24/7</span>
-                <strong style={{ fontSize: 13 }}>1800 6601</strong>
+                <ThunderboltFilled style={{ fontSize: 20, color: "#cb1c22" }} />
               </div>
-            </div>
-
-            {/* Shopping Cart Pill Button */}
-            <div
-              onClick={() => setCartOpen(true)}
-              style={{
-                background: "rgba(255,255,255,0.18)",
-                border: "1px solid rgba(255,255,255,0.25)",
-                borderRadius: 20,
-                padding: "6px 14px",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                cursor: "pointer",
-                color: "#fff",
-                transition: "all 0.2s ease",
-              }}
-            >
-              <Badge count={totalItems} overflowCount={99} size="small" color="#fff" style={{ color: "#cb1c22", fontWeight: 700 }}>
-                <ShoppingCartOutlined style={{ fontSize: 18, color: "#fff" }} />
-              </Badge>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>Giỏ hàng</span>
-            </div>
-
-            {/* User Account / Auth Buttons */}
-            {user ? (
-              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
-                <div
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                }}
+              >
+                <span
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                    padding: "4px 8px",
-                    borderRadius: 16,
-                    background: "rgba(255,255,255,0.1)",
+                    fontSize: 20,
+                    fontWeight: 800,
+                    letterSpacing: -0.5,
+                    color: "#fff",
+                    display: "block",
+                    lineHeight: 1.1,
+                    margin: 0,
+                    padding: 0,
                   }}
                 >
-                  <Avatar
-                    src={user.avatar_url}
-                    icon={!user.avatar_url && <UserOutlined />}
-                    style={{ backgroundColor: "#ffffff", color: "#cb1c22" }}
-                  />
-                  <Text
-                    style={{
-                      color: "#fff",
-                      fontWeight: 600,
-                      maxWidth: 110,
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                      whiteSpace: "nowrap",
-                      fontSize: 13,
-                    }}
-                  >
-                    {user.full_name}
-                  </Text>
-                </div>
-              </Dropdown>
-            ) : (
-              <Space size={8}>
-                <Link to="/login">
+                  XìMiStore
+                </span>
+                <span
+                  className="header-subtext"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: "rgba(255,255,255,0.9)",
+                    letterSpacing: 1.2,
+                    textTransform: "uppercase",
+                    display: "block",
+                    lineHeight: 1,
+                    marginTop: 3,
+                    margin: 0,
+                    padding: 0,
+                  }}
+                >
+                  Thiết Bị Công Nghệ
+                </span>
+              </div>
+            </Link>
+
+            {/* Prominent Search Bar */}
+            <div style={{ flex: 1, maxWidth: 500, margin: "0 12px" }}>
+              <Input
+                placeholder="Bạn cần tìm laptop, điện thoại, phụ kiện gì?..."
+                allowClear
+                value={headerSearch}
+                onChange={(e) => setHeaderSearch(e.target.value)}
+                onPressEnter={handleSearchSubmit}
+                suffix={
                   <Button
                     type="text"
+                    shape="circle"
+                    icon={<SearchOutlined style={{ color: "#cb1c22" }} />}
+                    onClick={handleSearchSubmit}
+                  />
+                }
+                style={{
+                  borderRadius: 20,
+                  height: 38,
+                  background: "#ffffff",
+                  border: "none",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
+                  fontSize: 13,
+                }}
+              />
+            </div>
+
+            {/* Right utility items */}
+            <Space size={16} align="center" style={{ flexShrink: 0 }}>
+              {/* Hotline */}
+              <div
+                className="header-hotline"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  color: "#fff",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+                onClick={() => window.open("tel:18006601")}
+              >
+                <PhoneOutlined style={{ fontSize: 16 }} />
+                <div style={{ lineHeight: "14px" }}>
+                  <span style={{ fontSize: 11, opacity: 0.85, display: "block" }}>Hotline 24/7</span>
+                  <strong style={{ fontSize: 13 }}>1800 6601</strong>
+                </div>
+              </div>
+
+              {/* Shopping Cart Pill Button */}
+              <div
+                onClick={() => setCartOpen(true)}
+                style={{
+                  background: "rgba(255,255,255,0.18)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  borderRadius: 20,
+                  padding: "6px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer",
+                  color: "#fff",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <Badge count={totalItems} overflowCount={99} size="small" color="#fff" style={{ color: "#cb1c22", fontWeight: 700 }}>
+                  <ShoppingCartOutlined style={{ fontSize: 18, color: "#fff" }} />
+                </Badge>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Giỏ hàng</span>
+              </div>
+
+              {/* User Account / Auth Buttons */}
+              {user ? (
+                <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
+                  <div
                     style={{
-                      color: "#fff",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      border: "1px solid rgba(255,255,255,0.3)",
-                      borderRadius: 18,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      cursor: "pointer",
+                      padding: "4px 8px",
+                      borderRadius: 16,
+                      background: "rgba(255,255,255,0.1)",
                     }}
                   >
-                    Đăng nhập
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button
-                    style={{
-                      background: "#fff",
-                      color: "#cb1c22",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      borderRadius: 18,
-                      border: "none",
-                    }}
-                  >
-                    Đăng ký
-                  </Button>
-                </Link>
-              </Space>
-            )}
-          </Space>
-        </div>
+                    <Avatar
+                      src={user.avatar_url}
+                      icon={!user.avatar_url && <UserOutlined />}
+                      style={{ backgroundColor: "#ffffff", color: "#cb1c22" }}
+                    />
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontWeight: 600,
+                        maxWidth: 110,
+                        textOverflow: "ellipsis",
+                        overflow: "hidden",
+                        whiteSpace: "nowrap",
+                        fontSize: 13,
+                      }}
+                    >
+                      {user.full_name}
+                    </Text>
+                  </div>
+                </Dropdown>
+              ) : (
+                <Space size={8}>
+                  <Link to="/login">
+                    <Button
+                      type="text"
+                      style={{
+                        color: "#fff",
+                        fontWeight: 600,
+                        fontSize: 13,
+                        border: "1px solid rgba(255,255,255,0.3)",
+                        borderRadius: 18,
+                      }}
+                    >
+                      Đăng nhập
+                    </Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button
+                      style={{
+                        background: "#fff",
+                        color: "#cb1c22",
+                        fontWeight: 600,
+                        fontSize: 13,
+                        borderRadius: 18,
+                        border: "none",
+                      }}
+                    >
+                      Đăng ký
+                    </Button>
+                  </Link>
+                </Space>
+              )}
+            </Space>
+          </div>
+        )}
       </Header>
 
       {/* 2. QUICK CATEGORY SUB-BAR (CLEAN WHITE #ffffff) */}
@@ -419,14 +564,15 @@ const StoreLayout: React.FC = () => {
         }}
       >
         <div
+          className="horizontal-touch-scroll"
           style={{
             maxWidth: 1240,
             margin: "0 auto",
-            padding: "0 16px",
+            padding: isMobile ? "0 12px" : "0 16px",
             height: 42,
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            gap: isMobile ? 8 : 12,
             overflowX: "auto",
           }}
         >
@@ -553,7 +699,7 @@ const StoreLayout: React.FC = () => {
         style={{
           maxWidth: 1240,
           margin: "0 auto",
-          padding: "16px 16px 48px",
+          padding: isMobile ? "12px 12px 36px" : "16px 16px 48px",
           width: "100%",
           flex: 1,
         }}
@@ -566,21 +712,14 @@ const StoreLayout: React.FC = () => {
         style={{
           background: "#ffffff",
           borderTop: "1px solid #e5e7eb",
-          padding: "36px 16px 20px",
+          padding: isMobile ? "24px 16px 16px" : "36px 16px 20px",
           color: "#4b5563",
         }}
       >
         <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: 28,
-              marginBottom: 32,
-            }}
-          >
+          <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
             {/* Col 1 */}
-            <div>
+            <Col xs={24} sm={12} md={6}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <ThunderboltFilled style={{ fontSize: 22, color: "#cb1c22" }} />
                 <span style={{ fontSize: 18, fontWeight: 800, color: "#111827" }}>XìMiStore</span>
@@ -592,10 +731,10 @@ const StoreLayout: React.FC = () => {
                 <Text strong style={{ color: "#111827" }}>Tổng đài hỗ trợ:</Text>
                 <div style={{ color: "#cb1c22", fontWeight: 700, fontSize: 16 }}>1800 6601</div>
               </div>
-            </div>
+            </Col>
 
             {/* Col 2 */}
-            <div>
+            <Col xs={24} sm={12} md={6}>
               <Title level={5} style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: "#111827" }}>
                 Chính Sách & Hỗ Trợ
               </Title>
@@ -609,10 +748,10 @@ const StoreLayout: React.FC = () => {
                   </Link>
                 </li>
               </ul>
-            </div>
+            </Col>
 
             {/* Col 3 */}
-            <div>
+            <Col xs={24} sm={12} md={6}>
               <Title level={5} style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: "#111827" }}>
                 Cam Kết Bán Hàng
               </Title>
@@ -627,18 +766,18 @@ const StoreLayout: React.FC = () => {
                   <SyncOutlined style={{ color: "#cb1c22" }} /> Lỗi 1 đổi 1 tận nơi nhanh chóng
                 </span>
               </div>
-            </div>
+            </Col>
 
             {/* Col 4 */}
-            <div>
+            <Col xs={24} sm={12} md={6}>
               <Title level={5} style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: "#111827" }}>
                 Thanh Toán An Toàn
               </Title>
               <p style={{ fontSize: 13, lineHeight: 1.6, color: "#6b7280" }}>
                 Hỗ trợ thanh toán khi nhận hàng (COD), Chuyển khoản VietQR, Thẻ ATM/Visa/MasterCard và trả góp 0% lãi suất.
               </p>
-            </div>
-          </div>
+            </Col>
+          </Row>
 
           <div
             style={{
@@ -664,7 +803,7 @@ const StoreLayout: React.FC = () => {
           </div>
         }
         placement="right"
-        width={420}
+        width={isMobile ? "100%" : 420}
         onClose={() => setCartOpen(false)}
         open={cartOpen}
         footer={

@@ -25,12 +25,14 @@ import {
 } from "@ant-design/icons";
 import { Link, useSearchParams } from "react-router-dom";
 import { getArticles } from "../../api/article.api";
+import { useResponsive } from "../../hooks/useResponsive";
 import type { Article } from "../../types/article";
 import { TOPIC_OPTIONS, getTopicColor } from "../admin/ArticlesPage";
 
 const { Title, Paragraph, Text } = Typography;
 
 const TechNewsPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const currentTopic = searchParams.get("topic") || "";
@@ -126,9 +128,9 @@ const TechNewsPage: React.FC = () => {
         style={{
           background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
           borderRadius: 20,
-          padding: "36px 32px",
+          padding: isMobile ? "20px 16px" : "36px 32px",
           color: "#ffffff",
-          marginBottom: 32,
+          marginBottom: isMobile ? 20 : 32,
           position: "relative",
           overflow: "hidden",
           boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.15)",
@@ -237,7 +239,7 @@ const TechNewsPage: React.FC = () => {
                 >
                   <div
                     style={{
-                      height: 380,
+                      height: isMobile ? 220 : 380,
                       background: "#f3f4f6",
                       overflow: "hidden",
                     }}
@@ -268,7 +270,7 @@ const TechNewsPage: React.FC = () => {
               <Col xs={24} md={11} lg={10}>
                 <div
                   style={{
-                    padding: "32px 28px",
+                    padding: isMobile ? "20px 16px" : "32px 28px",
                     height: "100%",
                     display: "flex",
                     flexDirection: "column",
@@ -410,12 +412,15 @@ const TechNewsPage: React.FC = () => {
       >
         {/* Topic Pills */}
         <div
+          className="horizontal-touch-scroll"
           style={{
             display: "flex",
             alignItems: "center",
             gap: 8,
             overflowX: "auto",
             paddingBottom: 4,
+            flexWrap: isMobile ? "nowrap" : "wrap",
+            width: isMobile ? "100%" : "auto",
           }}
         >
           <Button
@@ -424,7 +429,7 @@ const TechNewsPage: React.FC = () => {
             shape="round"
             size="middle"
             onClick={() => handleTopicChange("")}
-            style={{ fontWeight: 600 }}
+            style={{ fontWeight: 600, flexShrink: 0 }}
           >
             Tất cả chủ đề
           </Button>
@@ -439,7 +444,7 @@ const TechNewsPage: React.FC = () => {
                 shape="round"
                 size="middle"
                 onClick={() => handleTopicChange(t.value)}
-                style={{ fontWeight: isSelected ? 700 : 500 }}
+                style={{ fontWeight: isSelected ? 700 : 500, flexShrink: 0 }}
               >
                 {t.label}
               </Button>
@@ -448,7 +453,7 @@ const TechNewsPage: React.FC = () => {
         </div>
 
         {/* Search Input */}
-        <div style={{ minWidth: 260, flex: "0 1 320px" }}>
+        <div style={{ minWidth: isMobile ? "100%" : 260, flex: isMobile ? "1 1 100%" : "0 1 320px" }}>
           <Input.Search
             placeholder="Tìm kiếm bài viết công nghệ..."
             allowClear

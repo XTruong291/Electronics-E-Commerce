@@ -30,6 +30,7 @@ import {
 import { Link } from "react-router-dom";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useResponsive } from "../../hooks/useResponsive";
 import { createOrder, cancelMyOrder } from "../../api/order.api";
 import axiosClient from "../../api/axiosClient";
 import type { Order, OrderCreatePayload } from "../../types/order";
@@ -51,6 +52,7 @@ interface CheckoutFormValues {
 }
 
 const CheckoutPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [form] = Form.useForm<CheckoutFormValues>();
 
   const { items, getTotalPrice, clearCart } = useCartStore();
@@ -254,21 +256,23 @@ const CheckoutPage: React.FC = () => {
   const totalPrice = getTotalPrice();
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px 64px" }}>
-      <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 12 }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: isMobile ? "16px 8px 48px" : "24px 16px 64px" }}>
+      <div style={{ marginBottom: isMobile ? 16 : 24, display: "flex", alignItems: "center", gap: 12 }}>
         <Link to="/">
           <Button icon={<ArrowLeftOutlined />} shape="circle" />
         </Link>
         <div>
-          <Title level={3} style={{ margin: 0 }}>
+          <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
             Thanh toán đơn hàng
           </Title>
-          <Text type="secondary">Vui lòng kiểm tra thông tin nhận hàng và danh sách sản phẩm</Text>
+          <Text type="secondary" style={{ fontSize: isMobile ? 12 : 14 }}>
+            Vui lòng kiểm tra thông tin nhận hàng và danh sách sản phẩm
+          </Text>
         </div>
       </div>
 
       <Form form={form} layout="vertical" onFinish={onFinish} requiredMark="optional">
-        <Row gutter={[24, 24]}>
+        <Row gutter={isMobile ? [16, 16] : [24, 24]}>
           {/* CỘT TRÁI: THÔNG TIN GIAO HÀNG */}
           <Col xs={24} md={14}>
             <Card

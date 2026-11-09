@@ -38,6 +38,7 @@ import {
   deleteArticle,
 } from "../../api/article.api";
 import { uploadProductImage } from "../../api/catalog.api";
+import { useResponsive } from "../../hooks/useResponsive";
 import type {
   Article,
   ArticleCreatePayload,
@@ -71,6 +72,7 @@ interface ArticleFormValues {
 }
 
 const ArticlesPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [articles, setArticles] = useState<Article[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
@@ -461,7 +463,7 @@ const ArticlesPage: React.FC = () => {
         />
       </Card>
 
-      {/* Drawer: Add / Edit Article (Large 860px) */}
+      {/* Drawer: Add / Edit Article (Large 860px or 100% on mobile) */}
       <Drawer
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -469,7 +471,7 @@ const ArticlesPage: React.FC = () => {
             <span>{editingArticle ? "Chỉnh sửa bài viết công nghệ" : "Thêm bài viết công nghệ mới"}</span>
           </div>
         }
-        width={860}
+        width={isMobile ? "100%" : 860}
         open={drawerOpen}
         onClose={handleCloseDrawer}
         destroyOnClose

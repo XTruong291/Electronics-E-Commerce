@@ -44,6 +44,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { getAdminDashboardStats } from "../../api/order.api";
 import { getArticles } from "../../api/article.api";
+import { useResponsive } from "../../hooks/useResponsive";
 import {
   getAnalyticsOverview,
   getGeminiInsights,
@@ -233,6 +234,7 @@ const defaultPrompts = [
 ];
 
 const DashboardPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const navigate = useNavigate();
   const [days, setDays] = useState<number>(14);
   const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
@@ -1106,7 +1108,7 @@ const DashboardPage: React.FC = () => {
             border: "1px solid #334155",
             boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
           }}
-          bodyStyle={{ padding: "24px 28px" }}
+          bodyStyle={{ padding: isMobile ? "16px 12px" : "24px 28px" }}
         >
           {/* Header Bar */}
           <div
@@ -1439,7 +1441,7 @@ const DashboardPage: React.FC = () => {
                     >
                       <div
                         style={{
-                          maxWidth: "80%",
+                          maxWidth: isMobile ? "92%" : "80%",
                           background: "#cb1c22",
                           color: "#ffffff",
                           padding: "10px 16px",
@@ -1495,11 +1497,11 @@ const DashboardPage: React.FC = () => {
 
                     <div
                       style={{
-                        maxWidth: "88%",
+                        maxWidth: isMobile ? "94%" : "88%",
                         background: "rgba(255, 255, 255, 0.05)",
                         border: "1px solid rgba(255, 255, 255, 0.08)",
                         borderRadius: "14px 14px 14px 2px",
-                        padding: "14px 18px",
+                        padding: isMobile ? "10px 12px" : "14px 18px",
                       }}
                     >
                       <div

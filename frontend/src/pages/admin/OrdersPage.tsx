@@ -24,6 +24,7 @@ import {
   EyeOutlined,
 } from "@ant-design/icons";
 import { getAdminOrders, updateOrderStatus } from "../../api/order.api";
+import { useResponsive } from "../../hooks/useResponsive";
 import type { Order, OrderStatus } from "../../types/order";
 
 const { Title, Text, Paragraph } = Typography;
@@ -51,6 +52,7 @@ const getStatusTag = (status: OrderStatus) => {
 };
 
 const OrdersPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
@@ -276,6 +278,7 @@ const OrdersPage: React.FC = () => {
               setPageSize(ps);
             },
           }}
+          scroll={{ x: 800 }}
         />
       </Card>
 
@@ -294,7 +297,7 @@ const OrdersPage: React.FC = () => {
         }
         open={detailModalOpen}
         onCancel={() => setDetailModalOpen(false)}
-        width={700}
+        width={isMobile ? "100%" : 700}
         footer={[
           <Button key="close" onClick={() => setDetailModalOpen(false)}>
             Đóng
@@ -322,7 +325,7 @@ const OrdersPage: React.FC = () => {
         {selectedOrder && (
           <div>
             {/* THÔNG TIN KHÁCH HÀNG & GIAO NHẬN */}
-            <Descriptions bordered size="small" column={2} style={{ marginTop: 12 }}>
+            <Descriptions bordered size="small" column={isMobile ? 1 : 2} style={{ marginTop: 12 }}>
               <Descriptions.Item label="Người nhận">
                 {selectedOrder.recipient_name}
               </Descriptions.Item>
