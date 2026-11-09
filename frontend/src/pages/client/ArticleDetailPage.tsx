@@ -26,6 +26,7 @@ import {
 } from "@ant-design/icons";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { getArticleDetail, getArticles } from "../../api/article.api";
+import { useResponsive } from "../../hooks/useResponsive";
 import type { Article } from "../../types/article";
 import ArticleContentRenderer from "../../components/ArticleContentRenderer";
 import { getTopicColor } from "../admin/ArticlesPage";
@@ -33,6 +34,7 @@ import { getTopicColor } from "../admin/ArticlesPage";
 const { Title, Paragraph, Text } = Typography;
 
 const ArticleDetailPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
@@ -147,14 +149,14 @@ const ArticleDetailPage: React.FC = () => {
         ]}
       />
 
-      <Row gutter={[32, 32]}>
+      <Row gutter={isMobile ? [16, 16] : [32, 32]}>
         {/* 2. MAIN READING COLUMN (LEFT) */}
         <Col xs={24} lg={16}>
           <article
             style={{
               background: "#ffffff",
               borderRadius: 16,
-              padding: "36px 32px",
+              padding: isMobile ? "20px 14px" : "36px 32px",
               border: "1px solid #e5e7eb",
               boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
             }}

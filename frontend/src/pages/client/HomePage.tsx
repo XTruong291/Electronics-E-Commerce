@@ -27,6 +27,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCategories, getProducts } from "../../api/catalog.api";
 import { getArticles } from "../../api/article.api";
 import { useCartStore } from "../../store/useCartStore";
+import { useResponsive } from "../../hooks/useResponsive";
 import type { Category, Product } from "../../types/catalog";
 import type { Article } from "../../types/article";
 
@@ -89,6 +90,7 @@ export const HERO_BANNERS: HeroBannerItem[] = [
 ];
 
 const HomePage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const addItem = useCartStore((state) => state.addItem);
@@ -256,13 +258,13 @@ const HomePage: React.FC = () => {
   return (
     <div>
       {/* 1. HERO BANNER: FULL-WIDTH CAROUSEL VỚI KHẢ NĂNG LƯỚT / VUỐT QUA LẠI VÀ NÚT ĐIỀU HƯỚNG */}
-      <div style={{ marginBottom: 24, position: "relative" }}>
+      <div style={{ marginBottom: isMobile ? 16 : 24, position: "relative" }}>
         <div
           style={{
             borderRadius: 12,
             overflow: "hidden",
             boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-            height: 320,
+            height: isMobile ? 210 : 320,
             background: "#0f172a",
             position: "relative",
           }}
@@ -274,12 +276,12 @@ const HomePage: React.FC = () => {
             onClick={() => carouselRef.current?.prev()}
             style={{
               position: "absolute",
-              left: 14,
+              left: isMobile ? 6 : 14,
               top: "50%",
               transform: "translateY(-50%)",
               zIndex: 10,
-              width: 38,
-              height: 38,
+              width: isMobile ? 30 : 38,
+              height: isMobile ? 30 : 38,
               borderRadius: "50%",
               background: "rgba(15, 23, 42, 0.65)",
               border: "1px solid rgba(255, 255, 255, 0.25)",
@@ -293,7 +295,7 @@ const HomePage: React.FC = () => {
             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(203, 28, 34, 0.85)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(15, 23, 42, 0.65)")}
           >
-            <LeftOutlined style={{ fontSize: 16 }} />
+            <LeftOutlined style={{ fontSize: isMobile ? 13 : 16 }} />
           </button>
 
           {/* Nút lướt sang phải */}
@@ -303,12 +305,12 @@ const HomePage: React.FC = () => {
             onClick={() => carouselRef.current?.next()}
             style={{
               position: "absolute",
-              right: 14,
+              right: isMobile ? 6 : 14,
               top: "50%",
               transform: "translateY(-50%)",
               zIndex: 10,
-              width: 38,
-              height: 38,
+              width: isMobile ? 30 : 38,
+              height: isMobile ? 30 : 38,
               borderRadius: "50%",
               background: "rgba(15, 23, 42, 0.65)",
               border: "1px solid rgba(255, 255, 255, 0.25)",
@@ -322,7 +324,7 @@ const HomePage: React.FC = () => {
             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(203, 28, 34, 0.85)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(15, 23, 42, 0.65)")}
           >
-            <RightOutlined style={{ fontSize: 16 }} />
+            <RightOutlined style={{ fontSize: isMobile ? 13 : 16 }} />
           </button>
 
           <Carousel
@@ -348,7 +350,7 @@ const HomePage: React.FC = () => {
                   />
                   <div
                     style={{
-                      height: 320,
+                      height: isMobile ? 210 : 320,
                       backgroundImage: `url('${bgUrl}')`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
@@ -366,32 +368,32 @@ const HomePage: React.FC = () => {
                           display: "flex",
                           flexDirection: "column",
                           justifyContent: "center",
-                          padding: "0 60px",
+                          padding: isMobile ? "0 22px 0 38px" : "0 60px",
                           color: "#fff",
                         }}
                       >
                         {banner.tag && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: isMobile ? 4 : 8 }}>
                             <span
                               style={{
                                 display: "inline-flex",
                                 alignItems: "center",
-                                gap: 6,
+                                gap: 4,
                                 background: "#cb1c22",
                                 backgroundColor: "#cb1c22",
                                 color: "#ffffff",
                                 fontWeight: 800,
-                                fontSize: 12,
-                                padding: "4px 12px",
+                                fontSize: isMobile ? 10 : 12,
+                                padding: isMobile ? "2px 8px" : "4px 12px",
                                 borderRadius: 9999,
                                 letterSpacing: "0.5px",
                                 boxShadow: "0 2px 8px rgba(203, 28, 34, 0.45)",
                               }}
                             >
-                              <FireFilled style={{ color: "#ffffff", fontSize: 13 }} />
+                              <FireFilled style={{ color: "#ffffff", fontSize: isMobile ? 10 : 13 }} />
                               <span style={{ color: "#ffffff", fontWeight: 800 }}>{banner.tag}</span>
                             </span>
-                            {banner.subtitle && (
+                            {!isMobile && banner.subtitle && (
                               <span style={{ fontSize: 13, color: "rgba(255,255,255,0.92)" }}>
                                 {banner.subtitle}
                               </span>
@@ -399,26 +401,36 @@ const HomePage: React.FC = () => {
                           </div>
                         )}
                         {banner.title && (
-                          <Title level={2} style={{ color: "#fff", margin: "0 0 10px", fontWeight: 800, fontSize: 28 }}>
+                          <Title
+                            level={2}
+                            style={{
+                              color: "#fff",
+                              margin: isMobile ? "0 0 6px" : "0 0 10px",
+                              fontWeight: 800,
+                              fontSize: isMobile ? 18 : 28,
+                              lineHeight: 1.2,
+                            }}
+                          >
                             {banner.title}
                           </Title>
                         )}
-                        {banner.description && (
+                        {!isMobile && banner.description && (
                           <Paragraph style={{ color: "rgba(255,255,255,0.92)", fontSize: 15, margin: "0 0 20px", maxWidth: 620 }}>
                             {banner.description}
                           </Paragraph>
                         )}
                         <div>
                           <Button
-                            size="large"
+                            size={isMobile ? "middle" : "large"}
                             style={{
                               background: "#cb1c22",
                               color: "#fff",
                               fontWeight: 700,
                               borderRadius: 8,
                               border: "none",
-                              height: 42,
-                              padding: "0 24px",
+                              height: isMobile ? 34 : 42,
+                              padding: isMobile ? "0 16px" : "0 24px",
+                              fontSize: isMobile ? 12 : 14,
                               boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                             }}
                             onClick={() => scrollToProducts()}
@@ -449,10 +461,20 @@ const HomePage: React.FC = () => {
           }}
           bodyStyle={{ padding: "16px 20px" }}
         >
-          {/* Hàng 1: Brand Quick-Pills */}
+          {/* Hàng 1: Brand Quick-Pills (Touch Scrollable on Mobile) */}
           <div style={{ marginBottom: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#4b5563", marginRight: 4 }}>
+            <div
+              className="horizontal-touch-scroll"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: isMobile ? "nowrap" : "wrap",
+                overflowX: "auto",
+                paddingBottom: 4,
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#4b5563", marginRight: 4, flexShrink: 0 }}>
                 Hãng sản xuất:
               </span>
               <Button
@@ -469,6 +491,7 @@ const HomePage: React.FC = () => {
                   background: selectedBrand === undefined ? "#cb1c22" : "#f3f4f6",
                   borderColor: selectedBrand === undefined ? "#cb1c22" : "transparent",
                   color: selectedBrand === undefined ? "#fff" : "#374151",
+                  flexShrink: 0,
                 }}
               >
                 Tất cả
@@ -491,6 +514,7 @@ const HomePage: React.FC = () => {
                       background: isActive ? "#cb1c22" : "#f3f4f6",
                       borderColor: isActive ? "#cb1c22" : "transparent",
                       color: isActive ? "#fff" : "#374151",
+                      flexShrink: 0,
                     }}
                   >
                     {b}
@@ -611,7 +635,7 @@ const HomePage: React.FC = () => {
             </Button>
           </Empty>
         ) : (
-          <Row gutter={[16, 16]}>
+          <Row gutter={isMobile ? [10, 10] : [16, 16]}>
             {products.map((product) => {
               const hasDiscount =
                 product.sale_price !== null &&
@@ -640,9 +664,9 @@ const HomePage: React.FC = () => {
                       flexDirection: "column",
                       justifyContent: "space-between",
                       background: "#ffffff",
-                      borderRadius: 12,
+                      borderRadius: isMobile ? 8 : 12,
                       border: "1px solid #e5e7eb",
-                      padding: 14,
+                      padding: isMobile ? "8px 8px 10px" : 14,
                       cursor: "pointer",
                       position: "relative",
                     }}
@@ -654,8 +678,8 @@ const HomePage: React.FC = () => {
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
-                          marginBottom: 8,
-                          minHeight: 22,
+                          marginBottom: isMobile ? 4 : 8,
+                          minHeight: 20,
                         }}
                       >
                         {hasDiscount ? (
@@ -663,10 +687,11 @@ const HomePage: React.FC = () => {
                             style={{
                               background: "#cb1c22",
                               color: "#fff",
-                              fontSize: 11,
+                              fontSize: isMobile ? 10 : 11,
                               fontWeight: 700,
-                              padding: "2px 8px",
+                              padding: isMobile ? "1px 5px" : "2px 8px",
                               borderRadius: 4,
+                              lineHeight: 1.4,
                             }}
                           >
                             Giảm {discountPercent}%
@@ -675,30 +700,33 @@ const HomePage: React.FC = () => {
                           <span />
                         )}
 
-                        <span
-                          style={{
-                            background: "#eff6ff",
-                            color: "#1d4ed8",
-                            border: "1px solid #bfdbfe",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: "1px 6px",
-                            borderRadius: 4,
-                          }}
-                        >
-                          Trả góp 0%
-                        </span>
+                        {(!isMobile || !hasDiscount) && (
+                          <span
+                            style={{
+                              background: "#eff6ff",
+                              color: "#1d4ed8",
+                              border: "1px solid #bfdbfe",
+                              fontSize: isMobile ? 10 : 11,
+                              fontWeight: 600,
+                              padding: isMobile ? "1px 4px" : "1px 6px",
+                              borderRadius: 4,
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            Trả góp 0%
+                          </span>
+                        )}
                       </div>
 
                       {/* Product Image Box */}
                       <div
                         style={{
-                          height: 180,
+                          height: isMobile ? 130 : 180,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           overflow: "hidden",
-                          marginBottom: 12,
+                          marginBottom: isMobile ? 6 : 12,
                           position: "relative",
                         }}
                       >
@@ -727,8 +755,8 @@ const HomePage: React.FC = () => {
                               justifyContent: "center",
                             }}
                           >
-                            <Tag color="default" style={{ fontSize: 12, padding: "3px 8px", fontWeight: 600 }}>
-                              Tạm hết hàng
+                            <Tag color="default" style={{ fontSize: isMobile ? 10 : 12, padding: "2px 6px", fontWeight: 600 }}>
+                              Tạm hết
                             </Tag>
                           </div>
                         )}
@@ -736,7 +764,7 @@ const HomePage: React.FC = () => {
 
                       {/* Brand Label */}
                       <div style={{ marginBottom: 4 }}>
-                        <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 700, textTransform: "uppercase" }}>
+                        <span style={{ fontSize: 10, color: "#6b7280", fontWeight: 700, textTransform: "uppercase" }}>
                           {product.brand}
                         </span>
                       </div>
@@ -745,24 +773,24 @@ const HomePage: React.FC = () => {
                       <Tooltip title={product.name}>
                         <div
                           style={{
-                            fontSize: 14,
+                            fontSize: isMobile ? 12 : 14,
                             fontWeight: 600,
                             color: "#1f2937",
-                            lineHeight: "20px",
-                            height: 40,
+                            lineHeight: isMobile ? "17px" : "20px",
+                            height: isMobile ? 34 : 40,
                             overflow: "hidden",
                             display: "-webkit-box",
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: "vertical",
-                            marginBottom: 8,
+                            marginBottom: isMobile ? 4 : 8,
                           }}
                         >
                           {product.name}
                         </div>
                       </Tooltip>
 
-                      {/* Tech Specs Micro-Chips */}
-                      {specKeys.length > 0 && (
+                      {/* Tech Specs Micro-Chips (Hidden on mobile to preserve equal card heights) */}
+                      {!isMobile && specKeys.length > 0 && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
                           {specKeys.map((key) => (
                             <span
@@ -783,20 +811,28 @@ const HomePage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Price Block & Action Button */}
-                    <div style={{ marginTop: 8 }}>
-                      <div style={{ marginBottom: 10 }}>
+                    {/* Price Block & Action Button (Pushed to bottom) */}
+                    <div style={{ marginTop: "auto", paddingTop: 6 }}>
+                      <div
+                        style={{
+                          marginBottom: isMobile ? 6 : 10,
+                          minHeight: isMobile ? 36 : 42,
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "flex-end",
+                        }}
+                      >
                         {hasDiscount ? (
-                          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                            <span style={{ color: "#cb1c22", fontWeight: 800, fontSize: 17 }}>
+                          <div>
+                            <div style={{ color: "#cb1c22", fontWeight: 800, fontSize: isMobile ? 14 : 17, lineHeight: 1.2 }}>
                               {formatPrice(product.sale_price as number)}
-                            </span>
-                            <span style={{ color: "#9ca3af", textDecoration: "line-through", fontSize: 12 }}>
+                            </div>
+                            <div style={{ color: "#9ca3af", textDecoration: "line-through", fontSize: isMobile ? 11 : 12, lineHeight: 1.2 }}>
                               {formatPrice(product.price)}
-                            </span>
+                            </div>
                           </div>
                         ) : (
-                          <div style={{ color: "#cb1c22", fontWeight: 800, fontSize: 17 }}>
+                          <div style={{ color: "#cb1c22", fontWeight: 800, fontSize: isMobile ? 14 : 17 }}>
                             {formatPrice(product.price)}
                           </div>
                         )}
@@ -805,19 +841,20 @@ const HomePage: React.FC = () => {
                       <Button
                         block
                         type="primary"
-                        icon={<ShoppingCartOutlined />}
+                        icon={<ShoppingCartOutlined style={{ fontSize: isMobile ? 14 : 16 }} />}
                         disabled={isOutOfStock}
                         onClick={(e) => handleAddToCart(product, e)}
                         style={{
-                          borderRadius: 8,
+                          borderRadius: 6,
                           fontWeight: 600,
-                          fontSize: 13,
-                          height: 36,
+                          fontSize: isMobile ? 12 : 13,
+                          height: isMobile ? 32 : 36,
+                          padding: isMobile ? "0 4px" : "0 15px",
                           background: isOutOfStock ? undefined : "#cb1c22",
                           borderColor: isOutOfStock ? undefined : "#cb1c22",
                         }}
                       >
-                        {isOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
+                        {isOutOfStock ? "Hết hàng" : (isMobile ? "Thêm giỏ" : "Thêm vào giỏ")}
                       </Button>
                     </div>
                   </div>

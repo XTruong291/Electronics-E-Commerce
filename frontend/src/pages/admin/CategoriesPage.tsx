@@ -27,6 +27,7 @@ import {
   updateCategory,
   deleteCategory,
 } from "../../api/catalog.api";
+import { useResponsive } from "../../hooks/useResponsive";
 import type {
   Category,
   CategoryCreatePayload,
@@ -37,6 +38,7 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 const CategoriesPage: React.FC = () => {
+  const { isMobile } = useResponsive();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -287,6 +289,7 @@ const CategoriesPage: React.FC = () => {
           loading={loading}
           pagination={false}
           bordered
+          scroll={{ x: 650 }}
         />
       </Card>
 
@@ -299,6 +302,7 @@ const CategoriesPage: React.FC = () => {
         okText={editingCategory ? "Lưu thay đổi" : "Tạo danh mục"}
         cancelText="Hủy"
         destroyOnClose
+        width={isMobile ? "100%" : 520}
       >
         <Form
           form={form}

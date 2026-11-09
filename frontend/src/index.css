@@ -4,6 +4,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -16,12 +17,15 @@ body {
   color: #1f2937;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+  max-width: 100vw;
 }
 
 #root {
   min-height: 100vh;
   width: 100%;
   background-color: #f4f5f7;
+  overflow-x: hidden;
 }
 
 /* Custom transitions and hover polish */
@@ -40,6 +44,20 @@ body {
 
 .product-card-img {
   transition: transform 0.25s ease;
+}
+
+/* Smooth horizontal touch scroll with hidden scrollbar */
+.horizontal-touch-scroll {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE/Edge */
+}
+
+.horizontal-touch-scroll::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Edge */
 }
 
 /* Zebra striping for tech specifications table */
@@ -64,17 +82,18 @@ body {
   padding: 10px 14px;
   border-bottom: 1px solid #f3f4f6;
   line-height: 1.5;
+  word-break: break-word;
 }
 
 .zebra-specs-table td.spec-label {
-  width: 38%;
+  width: 40%;
   color: #4b5563;
   font-weight: 500;
   border-right: 1px solid #f3f4f6;
 }
 
 .zebra-specs-table td.spec-val {
-  width: 62%;
+  width: 60%;
   color: #111827;
   font-weight: 600;
 }
@@ -92,3 +111,15 @@ body {
   }
 }
 
+/* Display utility classes */
+@media (max-width: 767px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .show-on-mobile {
+    display: none !important;
+  }
+}

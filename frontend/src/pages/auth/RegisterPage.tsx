@@ -77,7 +77,7 @@ const RegisterPage: React.FC = () => {
           boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)",
           border: "1px solid #e5e7eb",
         }}
-        styles={{ body: { padding: "36px 32px" } }}
+        styles={{ body: { padding: "30px 20px" } }}
       >
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div
